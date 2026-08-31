@@ -926,7 +926,44 @@ body{margin:0}
 .g-3{grid-template-columns:repeat(3,1fr)}
 @media(max-width:1180px){.g-2,.g-11,.g-3{grid-template-columns:1fr}}
 
+/* min-width:0 es lo que impide que una tabla ancha estire su contenedor: sin
+   esto, un item de grid crece hasta el ancho de su contenido y arrastra toda la
+   pagina a scroll horizontal en pantallas chicas. */
+.grid > *,.chartbox{min-width:0}
 .chartbox{padding:16px 18px}
+/* las tablas que genera el JS se desplazan dentro de su caja, nunca la pagina */
+#chConc,#chPanTabla,#chTendComp{overflow-x:auto}
+#chConc table,#chPanTabla table{min-width:430px}
+/* Sombra de borde en las cajas que se desplazan a lo ancho. En telefono la
+   tabla queda cortada por el costado y sin esta senal parece un defecto de
+   maquetacion en vez de contenido que sigue: la sombra derecha desaparece sola
+   al llegar al final porque los gradientes van anclados al contenido
+   (background-attachment:local) y no al marco. */
+#chConc,#chPanTabla,#chTendComp,.scroll{
+  background-image:
+    linear-gradient(to right, var(--surface) 30%, transparent),
+    linear-gradient(to left,  var(--surface) 30%, transparent),
+    linear-gradient(to right, rgba(0,0,0,.13), transparent 14px),
+    linear-gradient(to left,  rgba(0,0,0,.13), transparent 14px);
+  background-position:0 0, 100% 0, 0 0, 100% 0;
+  background-repeat:no-repeat;
+  background-size:26px 100%, 26px 100%, 14px 100%, 14px 100%;
+  background-attachment:local, local, scroll, scroll;
+}
+
+/* Al desplazar una tabla comparativa a lo ancho, la etiqueta de fila se iba por
+   la izquierda y quedaban cifras sueltas sin saber que miden. La primera
+   columna se ancla; necesita fondo propio porque queda encima del resto. */
+#chConc table th:first-child,#chConc table td:first-child,
+#chPanTabla table th:first-child,#chPanTabla table td:first-child,
+#chTendComp table th:first-child,#chTendComp table td:first-child{
+  position:sticky;left:0;background:var(--surface);z-index:2}
+@media(max-width:560px){
+  /* mas columnas a la vista antes de tener que deslizar */
+  #chConc table,#chPanTabla table,#chTendComp table{min-width:0;font-size:.78rem}
+  #chConc th,#chConc td,#chPanTabla th,#chPanTabla td,
+  #chTendComp th,#chTendComp td{padding:7px 9px}
+}
 .chartbox h3{font-size:1.02rem}
 .chartbox .src{font-size:.72rem;color:var(--mut-2);margin-top:8px;line-height:1.45}
 .chartbox .src b{color:var(--mut);font-weight:600}
@@ -1164,6 +1201,20 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
   .kpirow{grid-template-columns:1fr}
   #mapa{height:290px}
 }
+
+/* El control de capas de Leaflet pide su icono a un PNG externo (layers.png).
+   El entregable es un archivo unico y sin red, asi que ese icono nunca cargaba
+   y el control quedaba como un recuadro blanco vacio sobre el mapa. Se sustituye
+   por un SVG embebido. */
+.leaflet-control-layers-toggle{
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232b2b3a%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%202.6%202.4%207.4%2012%2012.2l9.6-4.8z%22%2F%3E%3Cpath%20d%3D%22M2.4%2012.6%2012%2017.4l9.6-4.8%22%2F%3E%3Cpath%20d%3D%22M2.4%2017.2%2012%2022l9.6-4.8%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-size:20px 20px !important;background-position:center !important;
+  background-repeat:no-repeat !important;width:34px;height:34px}
+.leaflet-retina .leaflet-control-layers-toggle{
+  background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232b2b3a%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%202.6%202.4%207.4%2012%2012.2l9.6-4.8z%22%2F%3E%3Cpath%20d%3D%22M2.4%2012.6%2012%2017.4l9.6-4.8%22%2F%3E%3Cpath%20d%3D%22M2.4%2017.2%2012%2022l9.6-4.8%22%2F%3E%3C%2Fsvg%3E") !important;background-size:20px 20px !important}
+.leaflet-control-layers{background:var(--surface);color:var(--ink);
+  border:1px solid var(--line);border-radius:6px}
+.leaflet-control-layers-list{font-size:.8rem;padding:4px 8px 4px 6px}
 
 </style>
 </head>
@@ -1684,7 +1735,7 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 </div>
 </div>
 
-<div class="simnota">(simulación · v12)</div>
+<div class="simnota">(simulación · v13)</div>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2143,29 +2194,51 @@ function preparaSegmentos() {
   });
 }
 
+
+/** Un mapa embebido no debe secuestrar el gesto de desplazar la pagina. En
+ *  escritorio el problema es la rueda; en telefono es peor, porque arrastrar con
+ *  un dedo sobre el mapa mueve el mapa y el lector queda atrapado a media
+ *  pagina. Mismo criterio en los dos casos: el mapa no toma el gesto hasta que
+ *  se le toca a proposito, y un aviso lo dice con las palabras del dispositivo
+ *  que se este usando. */
+const TACTIL = matchMedia('(pointer:coarse)').matches;
+
+function avisoMapa(M, estilo) {
+  const ctl = L.control({ position: 'topleft' });
+  const ref = {};
+  ctl.onAdd = () => {
+    const d = L.DomUtil.create('div', 'leyenda');
+    d.style.cssText = estilo;
+    d.textContent = TACTIL ? 'Toca el mapa para moverlo'
+                           : 'Haz clic en el mapa para hacer zoom con la rueda';
+    ref.div = d;
+    return d;
+  };
+  ctl.addTo(M);
+  if (TACTIL) { M.dragging.disable(); M.touchZoom.disable(); }
+  const activa = () => {
+    if (TACTIL) { M.dragging.enable(); M.touchZoom.enable(); }
+    else M.scrollWheelZoom.enable();
+    if (ref.div) ref.div.style.display = 'none';
+  };
+  M.on('click focus', activa);
+  M.getContainer().addEventListener('touchend', activa, { passive: true });
+  // en escritorio se vuelve a soltar la rueda al salir; en tactil no hay
+  // equivalente y reactivar el bloqueo tras cada gesto seria exasperante
+  if (!TACTIL) M.on('mouseout', () => {
+    M.scrollWheelZoom.disable();
+    if (ref.div) ref.div.style.display = '';
+  });
+  return ref;
+}
+
 function iniMapa() {
   mapa = L.map('mapa', { preferCanvas: true, zoomControl: true,
                          attributionControl: true, scrollWheelZoom: false })
           .setView([-33.459, -70.686], 11);
   ponerBase(esOscuro() ? 'oscuro' : 'claro');
 
-  const aviso = L.control({ position: 'topleft' });
-  aviso.onAdd = () => {
-    const d = L.DomUtil.create('div', 'leyenda');
-    d.id = 'avisoZoom';
-    d.style.cssText = 'font-size:.7rem;padding:5px 9px;min-width:0';
-    d.textContent = 'Haz clic en el mapa para hacer zoom con la rueda';
-    return d;
-  };
-  aviso.addTo(mapa);
-  mapa.on('click focus', () => {
-    mapa.scrollWheelZoom.enable();
-    const a = document.getElementById('avisoZoom'); if (a) a.style.display = 'none';
-  });
-  mapa.on('mouseout', () => {
-    mapa.scrollWheelZoom.disable();
-    const a = document.getElementById('avisoZoom'); if (a) a.style.display = '';
-  });
+  avisoMapa(mapa, 'font-size:.7rem;padding:5px 9px;min-width:0');
 
   // Las vias que no se simulan (AVO I y Costanera Norte) llevan color fijo de su
   // concesion, nunca el del indicador: mostrarlas coloreadas por velocidad
@@ -2219,6 +2292,17 @@ function iniMapa() {
   const ley = L.control({ position: 'bottomright' });
   ley.onAdd = () => { const d = L.DomUtil.create('div', 'leyenda'); d.id = 'ley'; return d; };
   ley.addTo(mapa);
+
+  // El zoom 11 de arranque estaba calibrado para el ancho de escritorio y en
+  // telefono dejaba medio corredor fuera del cuadro. Se encuadra sobre los
+  // porticos, que son los que cubren el corredor operativo, y se rehace al
+  // girar el aparato.
+  const bp = L.latLngBounds(P.map(x => [x.lat, x.lon]));
+  if (bp.isValid()) {
+    const ajusta = () => mapa.fitBounds(bp, { padding: [14, 14], animate: false });
+    ajusta();
+    addEventListener('resize', () => { mapa.invalidateSize(); ajusta(); });
+  }
 }
 
 function ponerBase(k) {
@@ -2620,9 +2704,15 @@ function pintaKPIs() {
     kpi('Devengado por hora', MM(tasaM(SPB.dev, t, ids)), 'ritmo actual', '', 'reloj') +
     kpi('Monto no identificable', MM(dev * cIle / tot),
         'patente no legible: sin titular a quién facturar', 'alert', 'camara') +
-    kpi('Longitud del ámbito',
+    // Es la suma del tramo que TARIFICA cada portico, y cada sector tiene un
+    // portico por sentido: con los 32 da 105 km, el doble de los 52,50 km del
+    // corredor que el propio encabezado declara. Rotularlo "longitud del
+    // ambito" ponia dos cifras contradictorias en la misma pantalla.
+    kpi('Longitud tarificada',
         nf(ids.reduce((a, i) => a + P[i].largo_km, 0), 2) + ' km',
-        ids.length + (ids.length === 1 ? ' pórtico' : ' pórticos'), '', 'regla');
+        ids.length === 1 ? 'tramo que tarifica el pórtico'
+                         : ids.length + ' pórticos · suma de ambos sentidos',
+        '', 'regla');
 
   const u = DATOS.usuarios;
   document.getElementById('kpisUsr').innerHTML =
@@ -3256,6 +3346,32 @@ function grafBanda(el, cats, hist, proy, opt) {
   return s;
 }
 
+
+/** Anos sin dato publicado. La serie se corta en esos anos en vez de unir los
+ *  extremos, porque interpolar seria inventar; pero un punto suelto sin
+ *  explicacion se lee como un error del grafico, asi que se declara cual falta.
+ *  A VNE le faltan 2018 y 2024, y a Costanera Norte 2023. */
+/** enumera en castellano: "2018, 2019 y 2024", no "2018 y 2019 y 2024" */
+function lista(xs) {
+  if (xs.length === 1) return String(xs[0]);
+  return xs.slice(0, -1).join(', ') + ' y ' + xs[xs.length - 1];
+}
+
+function faltantes(c) {
+  const a = (c.serie_anual || []).map(x => x.anio).sort((u, v) => u - v);
+  if (a.length < 2) return '';
+  const f = [];
+  for (let k = a[0]; k <= a[a.length - 1]; k++) if (a.indexOf(k) < 0) f.push(k);
+  if (!f.length) return '';
+  const uno = f.length === 1;
+  return '; (iv) ' + (uno ? 'el a\u00f1o ' + f[0] + ' no aparece'
+                         : 'los a\u00f1os ' + lista(f) + ' no aparecen') +
+         ' porque esa sociedad no ' + (uno ? 'lo' : 'los') +
+         ' declar\u00f3 en sus estados financieros, y la serie se corta ah\u00ed ' +
+         'en vez de unir los extremos';
+}
+
+
 function pintaTendencias() {
   if (!document.getElementById('chTendProy') || typeof TEND === 'undefined') return;
   const C = TEND.concesiones;
@@ -3332,7 +3448,7 @@ function pintaTendencias() {
     'anuales excluyendo 2020 y 2021 \u2014shock y rebote de la pandemia\u2014, que ' +
     'inclu\u00eddos la duplicaban y la volv\u00edan inservible para decidir; (iii) es una ' +
     'extrapolaci\u00f3n de tendencia, no un modelo de demanda con variables ' +
-    'econ\u00f3micas.';
+    'econ\u00f3micas' + faltantes(c) + '.';
 
   // ---- variacion interanual
   grafBarras(document.getElementById('chTendVar'),
@@ -3391,6 +3507,32 @@ const CLASE_ROT = { alza: 'gana participación', estable: 'en línea con su corr
 
 /** mapa base reutilizable: fondo conmutable, trazado de las concesiones y el
  *  mismo comportamiento de rueda que el principal */
+
+/** Encuadra el mapa sobre el trazado del anillo. Un centro y un zoom fijos
+ *  estaban calibrados para el ancho de escritorio y en telefono, donde el mapa
+ *  mide unos 320x300 px, el corredor quedaba fuera del cuadro: la pestana abria
+ *  sobre un trozo de ciudad sin porticos. Se reencuadra tambien al cambiar el
+ *  tamano de la ventana, que es lo que ocurre al girar el telefono. */
+function encuadraTrazado(M, trazas, colGrupo) {
+  let b = null;
+  Object.keys(trazas).forEach(cod => {
+    if (colGrupo && cod === 'AVO') return;   // AVO no opera: no manda el encuadre
+    const lb = trazas[cod].getBounds && trazas[cod].getBounds();
+    if (lb && lb.isValid()) b = b ? b.extend(lb) : L.latLngBounds(lb.getSouthWest(),
+                                                                 lb.getNorthEast());
+  });
+  if (!b || !b.isValid()) return null;
+  // animate:false a proposito. El encuadre se pide cuando la seccion recien
+  // se muestra y con la animacion activa el zoom no llegaba a aplicarse: la
+  // transicion arranca sobre un elemento que estaba oculto, nunca emite su
+  // transitionend y Leaflet descarta el movimiento sin avisar.
+  const ajusta = () => { if (M.getSize().x > 0)
+    M.fitBounds(b, { padding: [12, 12], animate: false }); };
+  ajusta();
+  addEventListener('resize', () => { M.invalidateSize(); ajusta(); });
+  return ajusta;
+}
+
 function creaMapaBase(id, opts) {
   const div = document.getElementById(id);
   if (!div || MAPAS[id]) return MAPAS[id];
@@ -3401,23 +3543,7 @@ function creaMapaBase(id, opts) {
   const ref = { map: M, id, base: 'claro', capas: {}, trazas: {} };
   ponerBaseRef(ref, esOscuro() ? 'oscuro' : 'claro');
 
-  const aviso = L.control({ position: 'topleft' });
-  aviso.onAdd = () => {
-    const d = L.DomUtil.create('div', 'leyenda');
-    d.style.cssText = 'font-size:.68rem;padding:4px 8px;min-width:0';
-    d.textContent = 'Clic para hacer zoom con la rueda';
-    ref.avisoDiv = d;
-    return d;
-  };
-  aviso.addTo(M);
-  M.on('click focus', () => {
-    M.scrollWheelZoom.enable();
-    if (ref.avisoDiv) ref.avisoDiv.style.display = 'none';
-  });
-  M.on('mouseout', () => {
-    M.scrollWheelZoom.disable();
-    if (ref.avisoDiv) ref.avisoDiv.style.display = '';
-  });
+  ref.aviso = avisoMapa(M, 'font-size:.68rem;padding:4px 8px;min-width:0');
 
   TRAZA.features.forEach(f => {
     const cod = f.properties.concesion;
@@ -3430,6 +3556,7 @@ function creaMapaBase(id, opts) {
   });
 
   ref.capas.puntos = L.layerGroup().addTo(M);
+  ref.encuadra = encuadraTrazado(M, ref.trazas, true);
   MAPAS[id] = ref;
 
   const btns = document.querySelector('.basebtns[data-mapa="' + id + '"]');
@@ -3456,22 +3583,37 @@ function ponerBaseRef(ref, k) {
     b.classList.toggle('on', b.dataset.base === (k === 'oscuro' ? 'claro' : k)));
 }
 
-/** minigrafico de barras de una serie anual, para los paneles de detalle */
-function svgSerie(vals, cats, col, w, h) {
+/** Minigrafico de barras de una serie anual, para los paneles de detalle.
+ *  El viewBox se ajusta al ancho REAL del contenedor: con un viewBox fijo que
+ *  luego se escala, el texto encoge con el y en telefono las etiquetas de ano
+ *  quedaban de unos cuatro pixeles, ilegibles. Asi una unidad es un pixel y el
+ *  tamano de letra es el mismo en cualquier pantalla. */
+function svgSerie(vals, cats, col, wRef, h, contenedor) {
+  let w = wRef;
+  if (contenedor && contenedor.clientWidth) {
+    // clientWidth incluye el padding del panel: hay que descontarlo o el
+    // viewBox sale mas ancho que el hueco y el navegador reescala el texto
+    const cs = getComputedStyle(contenedor);
+    const pad = parseFloat(cs.paddingLeft || 0) + parseFloat(cs.paddingRight || 0);
+    w = Math.max(220, contenedor.clientWidth - pad - 2);
+  }
   const max = Math.max.apply(null, vals.concat([1])) * 1.1;
-  const mb = 15, ih = h - mb, bw = w / vals.length, gap = Math.min(6, bw * .25);
+  const mb = 16, ih = h - mb, bw = w / vals.length, gap = Math.min(6, bw * .25);
+  // en pantallas chicas no caben todas las etiquetas: se muestran salteadas
+  const cada = Math.max(1, Math.ceil(vals.length / Math.max(3, Math.floor(w / 46))));
   let s = '';
   vals.forEach((v, k) => {
     const alto = ih * v / max;
     s += '<rect x="' + (bw * k + gap / 2).toFixed(1) + '" y="' + (ih - alto).toFixed(1) +
-         '" width="' + (bw - gap).toFixed(1) + '" height="' + Math.max(alto, 1).toFixed(1) +
+         '" width="' + Math.max(bw - gap, 1).toFixed(1) + '" height="' + Math.max(alto, 1).toFixed(1) +
          '" fill="' + col + '" rx="1.5"><title>' + cats[k] + ': ' + MM(v) + '</title></rect>';
-    if (k % Math.ceil(vals.length / 8) === 0)
-      s += '<text x="' + (bw * (k + .5)).toFixed(1) + '" y="' + (h - 3) +
-           '" text-anchor="middle" font-size="9" fill="' + css('--mut-2') + '">' +
+    if (k % cada === 0)
+      s += '<text x="' + (bw * (k + .5)).toFixed(1) + '" y="' + (h - 4) +
+           '" text-anchor="middle" font-size="10" fill="' + css('--mut-2') + '">' +
            cats[k] + '</text>';
   });
-  return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto;display:block">' +
+  return '<svg viewBox="0 0 ' + w.toFixed(0) + ' ' + h + '" width="' + w.toFixed(0) +
+         '" height="' + h + '" style="max-width:100%;height:auto;display:block">' +
          s + '</svg>';
 }
 
@@ -3553,14 +3695,14 @@ function detalleRecaudacion(f, per) {
     for (let k = 0; k < NB; k++) porHora[Math.floor(k * BINMIN / 60)] += SPB.dev[f.i][k];
     cuerpo = '<div class="sub">Recaudación por hora del día en curso</div>' +
       svgSerie(porHora.map(x => x / 1e6), Array.from({ length: 24 }, (_, h) => dos(h)),
-               col, 700, 110);
+               col, 700, 110, d);
   } else if (f.hp) {
     const s = f.hp.serie;
     cuerpo = '<div class="sub">Recaudación por año</div>' +
       svgSerie(s.map(x => x.recaudacion_clp / 1e6), s.map(x => String(x.anio)),
-               col, 700, 110) +
+               col, 700, 110, d) +
       '<div class="sub" style="margin-top:12px">Reparto mensual del último año</div>' +
-      svgSerie(s[s.length - 1].meses_clp.map(x => x / 1e6), HP.meses, col, 700, 110);
+      svgSerie(s[s.length - 1].meses_clp.map(x => x / 1e6), HP.meses, col, 700, 110, d);
   }
   const ult = f.hp ? f.hp.serie[f.hp.serie.length - 1] : null;
   d.className = 'detpanel on';
@@ -3627,7 +3769,7 @@ function detalleTendenciaPunto(x, destino) {
     '<div class="cifra">Último año<b>' + MM(s[s.length - 1].recaudacion_clp) + '</b></div>' +
     '</div>' +
     '<div class="sub">Recaudación por año</div>' +
-    svgSerie(s.map(y => y.recaudacion_clp / 1e6), s.map(y => String(y.anio)), col, 700, 110);
+    svgSerie(s.map(y => y.recaudacion_clp / 1e6), s.map(y => String(y.anio)), col, 700, 110, d);
   d.scrollIntoView({ block: 'nearest' });
 }
 
@@ -3681,7 +3823,7 @@ function detalleTendenciaConcesion(cod) {
     '<div class="cifra">Dispersión normal<b>±' + pct(c.sd_normal_pct, 1) + '</b></div>' +
     '</div><div class="sub">Peaje devengado por año</div>' +
     svgSerie(c.serie_anual.map(y => y.peaje_clp / 1e6),
-             c.serie_anual.map(y => String(y.anio)), col, 700, 110);
+             c.serie_anual.map(y => String(y.anio)), col, 700, 110, d);
   d.scrollIntoView({ block: 'nearest' });
 }
 
@@ -3696,7 +3838,13 @@ function activaMapaDe(sec) {
   const [id, pinta] = cfg;
   if (!MAPAS[id]) creaMapaBase(id, { sinAVO: sec !== 'alertas' });
   pinta();
-  setTimeout(() => { if (MAPAS[id]) MAPAS[id].map.invalidateSize(); }, 60);
+  setTimeout(() => {
+    const r = MAPAS[id];
+    if (!r) return;
+    r.map.invalidateSize();
+    // el encuadre solo se puede calcular con la seccion ya visible
+    if (r.encuadra && !r.encuadrado) { r.encuadra(); r.encuadrado = true; }
+  }, 60);
 }
 
 /* ============================================================ CHIPS / TEXTO */
