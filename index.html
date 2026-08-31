@@ -880,17 +880,38 @@ body{margin:0}
 .tabs button{white-space:nowrap;padding:13px 16px;font-size:.9rem}
 
 /* --------------------------------------------------------------------- kpi */
-.kpirow{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+.kpirow{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));
   gap:var(--gap);margin:18px 0}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
-  padding:14px 16px;box-shadow:var(--sh-sm);position:relative;overflow:hidden}
+  padding:13px 15px 10px;box-shadow:var(--sh-sm);position:relative;overflow:hidden;
+  display:flex;flex-direction:column}
 :root[data-theme="dark"] .kpi{background-image:var(--card-grad);box-shadow:var(--card-3d)}
 .kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
 .kpi.alert::after{background:var(--red)}
-.kpi .v{font-size:1.55rem;margin:.15rem 0 .1rem}
+.kpi-hd{display:flex;align-items:center;gap:8px;min-height:20px}
+.kpi .ic{width:19px;height:19px;flex:0 0 auto;stroke:var(--accent);fill:none;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.kpi.alert .ic{stroke:var(--red)}
+.kpi .v{font-size:1.5rem;margin:.2rem 0 .1rem;line-height:1.05}
 .kpi.alert .v{color:var(--red)}
-:root[data-theme="dark"] .kpi .v{text-shadow:0 0 12px rgba(255,106,26,.35)}
-.kpi .u{font-size:.72rem;color:var(--mut-2);font-weight:600}
+:root[data-theme="dark"] .kpi .v{text-shadow:0 0 12px rgba(95,191,51,.32)}
+:root[data-theme="dark"] .kpi.alert .v{text-shadow:0 0 12px rgba(178,24,43,.4)}
+.kpi .u{font-size:.72rem;color:var(--mut-2);font-weight:600;margin-top:auto}
+.kpi .spark{display:block;width:100%;height:22px;margin-top:7px;overflow:visible}
+
+/* iconos en linea, fuera de los KPI */
+.ic-in{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px;margin-right:5px}
+.chip .ic-in{margin-right:4px;opacity:.95}
+.veh-ic{width:26px;height:26px;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* Barra de proporcion dentro de una celda de tabla.
+   Se llama .barra y no .mini: .mini ya existia para `.aviso.mini` y la regla de
+   altura 4px se le aplicaba tambien al aviso, que quedaba recortado a una linea. */
+.barra{position:relative;display:block;height:4px;border-radius:3px;
+  background:var(--line);margin-top:3px;overflow:hidden}
+.barra i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
 
 /* ------------------------------------------------------------------ grilla */
 .grid{display:grid;gap:var(--gap)}
@@ -1348,7 +1369,7 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 </div>
 </div>
 
-<div class="simnota">(simulación · v2)</div>
+<div class="simnota">(simulación · v3)</div>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -1456,6 +1477,22 @@ function serieH(M, ids) {
   });
   return out;
 }
+/** Flujo MEDIO POR PUNTO DE CONTROL, en veh/h.
+ *  Sumar el flujo de 32 porticos daria un numero sin sentido fisico -- no hay
+ *  ningun lugar del anillo por el que pasen 200.000 veh/h -- del mismo modo que
+ *  no se suman velocidades. Lo que tiene significado es el flujo que ve un punto
+ *  de cobro, y su promedio y maximo sobre el ambito. */
+function flujoPorPunto(t, ids) {
+  const I = ids || idxs();
+  return tasaM(SPB.n, t, I) / I.length;
+}
+function flujoMaxPunto(t, ids) {
+  const I = ids || idxs();
+  let mx = 0, cual = I[0];
+  I.forEach(i => { const v = tasaM(SPB.n, t, [i]); if (v > mx) { mx = v; cual = i; } });
+  return { v: mx, i: cual };
+}
+
 /** velocidad media del ambito, ponderada por transitos */
 function velMedia(t) {
   const b = binDe(t);
@@ -1647,6 +1684,69 @@ const colConc = c => css(c === 'AVS' ? '--avs' : c === 'VNE' ? '--vne' : '--avo'
 function colFlujo(f, fmax) {
   const ramp = ['--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
   return css(ramp[Math.min(4, Math.floor(Math.min(f / (fmax || 1), 1) * 5))]);
+}
+
+
+/* ================================================================ ICONOS */
+/* Set propio, trazo de 24x24, mismo grosor y mismas terminaciones: un solo
+   sistema. Van embebidos porque el entregable no puede depender de una fuente
+   de iconos externa. Sirven para que el ojo encuentre el indicador antes de
+   leer la etiqueta, no como adorno: cada uno dice de que habla su tarjeta. */
+const IC = {
+  transito: '<path d="M3 17l5-5 4 4 8-8"/><path d="M16 8h4v4"/>',
+  flujo: '<path d="M3 8h11M3 12h7M3 16h13"/><path d="M17 5l3.5 3.5L17 12"/>',
+  velocidad: '<path d="M3.8 17a9 9 0 1116.4 0"/><path d="M12 17l4.6-5.2"/>' +
+             '<circle cx="12" cy="17" r="1.3"/>',
+  dinero: '<path d="M12 4.5v15"/><path d="M15.5 8.2C15.5 6.7 14 5.5 12 5.5S8.5 6.7 8.5 8.2' +
+          ' 10 10.9 12 10.9s3.5 1.2 3.5 2.7-1.5 2.7-3.5 2.7-3.5-1.2-3.5-2.7"/>',
+  tag: '<rect x="3.5" y="6" width="11" height="12" rx="2"/><path d="M7 10h4M7 14h4"/>' +
+       '<path d="M17 9.5a4 4 0 010 5M19.6 7.4a7.2 7.2 0 010 9.2"/>',
+  sintag: '<circle cx="12" cy="12" r="8"/><path d="M6.3 6.3l11.4 11.4"/>',
+  camara: '<path d="M3.5 8.5h2.8l1.4-2h6.6l1.4 2h2.8a2 2 0 012 2v6.5a2 2 0 01-2 2H5.5a2 2 0 01-2-2V10.5a2 2 0 012-2z"/>' +
+          '<circle cx="12" cy="13.5" r="3"/><path d="M3 3l18 18"/>',
+  alerta: '<path d="M12 4.2l8.6 14.6H3.4z"/><path d="M12 10v3.6M12 16.5h.02"/>',
+  reloj: '<circle cx="12" cy="12" r="8.4"/><path d="M12 7.4V12l3.1 2"/>',
+  usuarios: '<circle cx="9" cy="8" r="3.2"/><path d="M2.8 19.2a6.2 6.2 0 0112.4 0"/>' +
+            '<path d="M16.2 5.9a3.2 3.2 0 010 6.2M17.4 19.2a6.2 6.2 0 00-1.6-4.2"/>',
+  regla: '<rect x="2.5" y="8" width="19" height="8" rx="1.5"/><path d="M7 8v3.2M12 8v4.4M17 8v3.2"/>',
+  portico: '<path d="M4.5 20V7.5a3 3 0 013-3h9a3 3 0 013 3V20"/><path d="M2.5 7.5h19"/>' +
+           '<path d="M9.5 20v-5h5v5"/>',
+  auto: '<path d="M3.6 15.5v-3.2c0-.3.06-.55.18-.8l1.5-3A2 2 0 017.06 7.3h9.88a2 2 0 011.78 1.2l1.5 3c.12.25.18.5.18.8v3.2"/>' +
+        '<path d="M2.6 15.5h18.8"/><circle cx="7.4" cy="16.6" r="1.7"/><circle cx="16.6" cy="16.6" r="1.7"/>',
+  moto: '<circle cx="5.4" cy="16" r="3.1"/><circle cx="18.6" cy="16" r="3.1"/>' +
+        '<path d="M8.5 16h4.6l3-6.2h-2.9"/><path d="M13.1 9.8L10.6 16"/><path d="M15.2 6.6h3.1"/>',
+  bus: '<rect x="3.2" y="4.6" width="17.6" height="11.4" rx="2"/><path d="M3.2 10.3h17.6"/>' +
+       '<path d="M8.4 4.6v5.7M15.6 4.6v5.7"/><circle cx="7.2" cy="18.2" r="1.6"/>' +
+       '<circle cx="16.8" cy="18.2" r="1.6"/>',
+  camion: '<rect x="2.4" y="6.6" width="9.6" height="8.4" rx="1"/>' +
+          '<path d="M13.2 8.8h3.6l3.2 3.2V15h-6.8z"/><path d="M2 15h20"/>' +
+          '<circle cx="6.2" cy="17.2" r="1.6"/><circle cx="17.2" cy="17.2" r="1.6"/>',
+  campana: '<path d="M18 15.5V11a6 6 0 10-12 0v4.5L4.4 18h15.2z"/><path d="M10 20.5a2.2 2.2 0 004 0"/>',
+  suma: '<path d="M4 6h16M4 12h10M4 18h13"/>'
+};
+/** icono suelto, para KPI (clase ic) o en linea con el texto (clase ic-in) */
+function ico(nombre, cls) {
+  return `<svg class="${cls || 'ic'}" viewBox="0 0 24 24" aria-hidden="true">` +
+         (IC[nombre] || '') + '</svg>';
+}
+const IC_CAT = { '1': 'auto', '4': 'moto', '2': 'bus', '3': 'camion' };
+
+/** minigrafico dentro de un KPI: la forma del dia hasta la hora en curso */
+function spark(vals, color, hastaFrac) {
+  const n = vals.length;
+  const max = Math.max.apply(null, vals) || 1;
+  const W = 100, H = 22;
+  const X = k => W * k / (n - 1), Y = v => H - (H - 2) * v / max;
+  let d = '';
+  for (let k = 0; k < n; k++) d += (k ? 'L' : 'M') + X(k).toFixed(1) + ' ' + Y(vals[k]).toFixed(1);
+  const corte = W * hastaFrac;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <clipPath id="cp${Math.round(corte * 97) % 9973}"><rect x="0" y="-2" width="${corte}" height="${H + 4}"/></clipPath>
+    <path d="${d}" fill="none" stroke="${color}" stroke-opacity=".22" stroke-width="1.6"/>
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="1.9"
+          clip-path="url(#cp${Math.round(corte * 97) % 9973})"/>
+    <line x1="${corte}" x2="${corte}" y1="0" y2="${H}" stroke="${css('--now')}" stroke-width="1.2"/>
+  </svg>`;
 }
 
 /* ================================================================== MAPA */
@@ -1853,60 +1953,91 @@ function pintaLeyenda() {
 }
 
 /* ================================================================== KPIs */
-const kpi = (label, valor, sub, cls) =>
-  `<div class="kpi${cls ? ' ' + cls : ''}"><div class="label">${label}</div>
-   <div class="v">${valor}</div><div class="u">${sub || ''}</div></div>`;
+const kpi = (label, valor, sub, cls, icono, sp) =>
+  `<div class="kpi${cls ? ' ' + cls : ''}">
+     <div class="kpi-hd">${icono ? ico(icono) : ''}<div class="label">${label}</div></div>
+     <div class="v">${valor}</div><div class="u">${sub || ''}</div>${sp || ''}</div>`;
 
 function pintaKPIs() {
-  const t = St.t;
+  const t = St.t, ids = idxs(), frac = t / 86400;
   const n = acumM(SPB.n, t), dev = acumM(SPB.dev, t);
-  const inst = tasaM(SPB.n, t);
+  const fp = flujoPorPunto(t, ids), fx = flujoMaxPunto(t, ids);
   const cTag = acumM(COND.CON_TAG, t), cSin = acumM(COND.SIN_TAG, t),
         cIle = acumM(COND.NO_LEGIBLE, t);
   const tot = (cTag + cSin + cIle) || 1;
+  const vm = velMedia(t);
+
+  // series para los minigraficos: la forma del dia, con la hora en curso marcada
+  const sN = serie(SPB.n, ids), sD = serie(SPB.dev, ids);
+  const acN = [], acD = [];
+  let a1 = 0, a2 = 0;
+  for (let k = 0; k < NB; k++) { a1 += sN[k]; a2 += sD[k]; acN.push(a1); acD.push(a2); }
+  const sF = sN.map(x => x * BINH / ids.length);
+  const sV = new Array(NB).fill(0);
+  for (let k = 0; k < NB; k++) {
+    let num = 0, den = 0;
+    ids.forEach(i => { num += VT[i][k] * SPB.n[i][k]; den += SPB.n[i][k]; });
+    sV[k] = den ? num / den : 0;
+  }
+  const cA = css('--accent'), cR = css('--red');
 
   document.getElementById('kpis').innerHTML =
-    kpi('Tránsitos acumulados', nf(n), 'vehículos desde las 00:00') +
-    kpi('Flujo instantáneo', nf(inst), 'vehículos por hora · ritmo actual') +
-    kpi('Velocidad media', nf(velMedia(t), 1), 'km/h del tramo, ahora') +
-    kpi('Devengado en pórtico', MM(dev), 'acumulado a las ' + hhmm(t)) +
-    kpi('Con TAG habilitado', pct(100 * cTag / tot, 2), nf(cTag) + ' tránsitos') +
-    kpi('Sin TAG', pct(100 * cSin / tot, 2), nf(cSin) + ' tránsitos', 'alert') +
-    kpi('Patente no legible', pct(100 * cIle / tot, 2), nf(cIle) + ' tránsitos', 'alert');
+    kpi('Tránsitos acumulados', nf(n), 'vehículos desde las 00:00', '',
+        'transito', spark(acN, cA, frac)) +
+    kpi('Flujo por punto de control', nf(fp),
+        'veh/h · promedio de ' + ids.length + (ids.length === 1 ? ' punto' : ' puntos'), '',
+        'flujo', spark(sF, cA, frac)) +
+    kpi('Punto más cargado ahora', nf(fx.v),
+        'veh/h en ' + P[fx.i].codigo + ' · ' + pct(100 * fx.v / 6000, 0) + ' de capacidad',
+        '', 'portico') +
+    kpi('Velocidad media', nf(vm, 1), 'km/h del tramo, ahora', '',
+        'velocidad', spark(sV, cA, frac)) +
+    kpi('Devengado en pórtico', MM(dev), 'acumulado a las ' + hhmm(t), '',
+        'dinero', spark(acD, cA, frac)) +
+    kpi('Con TAG habilitado', pct(100 * cTag / tot, 2), nf(cTag) + ' tránsitos', '', 'tag') +
+    kpi('Sin TAG', pct(100 * cSin / tot, 2), nf(cSin) + ' tránsitos', 'alert', 'sintag') +
+    kpi('Patente no legible', pct(100 * cIle / tot, 2), nf(cIle) + ' tránsitos',
+        'alert', 'camara');
 
   document.getElementById('notaUnidades').innerHTML =
-    `<b>Tránsitos acumulados</b> y <b>flujo instantáneo</b> miden cosas distintas
-     y no son comparables entre sí. El primero es un total que sólo puede crecer:
-     ${nf(n)} vehículos desde la medianoche. El segundo es un ritmo:
-     ${nf(inst)} vehículos por hora en este instante. Temprano en el día el ritmo
-     puede superar al acumulado sin ninguna inconsistencia — a las ${hhmm(t)} el
-     anillo va a una intensidad que, sostenida una hora completa, sumaría
-     ${nf(inst)} tránsitos.`;
+    `${ico('flujo', 'ic-in')}<b>Tránsitos acumulados</b> y <b>flujo por punto de
+     control</b> miden cosas distintas y no son comparables. El primero es un
+     total de vehículos que sólo puede crecer: ${nf(n)} desde la medianoche,
+     sumando lo que registran los ${ids.length} pórticos del ámbito. El segundo
+     es un ritmo instantáneo referido a <b>un</b> punto de cobro: ${nf(fp)} veh/h
+     de promedio, y ${nf(fx.v)} veh/h en el más cargado (${P[fx.i].codigo}).
+     No se suman los flujos de los ${ids.length} puntos porque esa suma no
+     describe ningún lugar del anillo — sería como sumar las velocidades de
+     varios autos. Cada pórtico del mapa muestra el suyo al pincharlo.`;
 
   const tar = n ? dev / n : 0;
   document.getElementById('kpisRec').innerHTML =
-    kpi('Devengado en pórtico', MM(dev), 'acumulado a las ' + hhmm(t)) +
-    kpi('Tarifa media', '$' + nf(tar, 1), 'por tránsito') +
-    kpi('Tránsitos', nf(n), 'que generan ese monto') +
-    kpi('Devengado por hora', MM(tasaM(SPB.dev, t)), 'ritmo actual') +
+    kpi('Devengado en pórtico', MM(dev), 'acumulado a las ' + hhmm(t), '',
+        'dinero', spark(acD, cA, frac)) +
+    kpi('Tarifa media', '$' + nf(tar, 1), 'por tránsito', '', 'suma') +
+    kpi('Tránsitos', nf(n), 'que generan ese monto', '', 'transito') +
+    kpi('Devengado por hora', MM(tasaM(SPB.dev, t, ids)), 'ritmo actual', '', 'reloj') +
     kpi('Monto no identificable', MM(dev * cIle / tot),
-        'patente no legible: sin titular a quién facturar', 'alert') +
+        'patente no legible: sin titular a quién facturar', 'alert', 'camara') +
     kpi('Longitud del ámbito',
-        nf(idxs().reduce((a, i) => a + P[i].largo_km, 0), 2) + ' km',
-        idxs().length + (idxs().length === 1 ? ' pórtico' : ' pórticos'));
+        nf(ids.reduce((a, i) => a + P[i].largo_km, 0), 2) + ' km',
+        ids.length + (ids.length === 1 ? ' pórtico' : ' pórticos'), '', 'regla');
 
   const u = DATOS.usuarios;
   document.getElementById('kpisUsr').innerHTML =
-    kpi('Padrón activo', nf(u.padron_activo), 'vehículos distintos en ' +
-        u.dias_observados + ' días') +
+    kpi('Padrón activo', nf(u.padron_activo),
+        'vehículos distintos en ' + u.dias_observados + ' días', '', 'usuarios') +
     kpi('Usuarios frecuentes', nf(u.frecuentes), pct(100 * u.share_frecuentes, 1) +
-        ' del padrón, ' + u.umbral_frecuente_dias + '+ días') +
+        ' del padrón, ' + u.umbral_frecuente_dias + '+ días', '', 'usuarios') +
     kpi('Pasadas de frecuentes', pct(100 * u.share_pasadas_frecuentes, 1),
-        'del total de pasadas identificadas') +
+        'del total de pasadas identificadas', '', 'transito') +
     kpi('Pasadas por vehículo', nf(u.pasadas_medias_frecuente, 1) + ' / ' +
-        nf(u.pasadas_medias_ocasional, 1), 'frecuente / ocasional, en la semana') +
-    kpi('Viaje medio', nf(DATOS.largo_viaje.media_km, 1) + ' km', 'longitud recorrida') +
-    kpi('Penetración TAG', pct(100 * cTag / tot, 1), 'de los tránsitos del día');
+        nf(u.pasadas_medias_ocasional, 1), 'frecuente / ocasional, en la semana',
+        '', 'suma') +
+    kpi('Viaje medio', nf(DATOS.largo_viaje.media_km, 1) + ' km', 'longitud recorrida',
+        '', 'regla') +
+    kpi('Penetración TAG', pct(100 * cTag / tot, 1), 'de los tránsitos del día',
+        '', 'tag');
 }
 
 /* ================================================================ TABLA */
@@ -1915,12 +2046,15 @@ function pintaTabla() {
   const filas = P.map((p, i) => ({
     p, i, n: acumM(SPB.n, t, [i]), v: VT[i][b], d: acumM(SPB.dev, t, [i])
   })).sort((x, y) => y.n - x.n).slice(0, 18);
+  const mx = filas.length ? filas[0].n : 1;
   document.querySelector('#tblTop tbody').innerHTML = filas.map(f =>
     `<tr data-pi="${f.i}" class="${St.ambito === f.i ? 'sel' : ''}">
       <td><span class="tagc" style="background:${colConc(f.p.concesion)}"></span>
           <b>${f.p.codigo}</b></td>
       <td style="font-size:.78rem;color:var(--mut)">${f.p.sector}</td>
-      <td class="num">${nf(f.n)}</td>
+      <td class="num">${nf(f.n)}
+        <span class="barra"><i style="width:${(100 * f.n / mx).toFixed(1)}%;
+          background:${colConc(f.p.concesion)}"></i></span></td>
       <td class="num" style="color:${colVel(f.v)}">${nf(f.v)}</td>
       <td class="num">${nf(f.d / 1e6, 1)}</td></tr>`).join('');
   document.querySelectorAll('#tblTop tbody tr').forEach(tr =>
@@ -1929,11 +2063,11 @@ function pintaTabla() {
 
 /* ============================================================== ALERTAS */
 const TIPOS_AL = {
-  velocidad: { rot: 'Caída de velocidad', col: '--v1' },
-  flujo: { rot: 'Caída de flujo', col: '--mp2' },
-  lectura: { rot: 'Falla de lectura', col: '--mp4' },
-  exceso: { rot: 'Exceso de velocidad', col: '--mp3' },
-  sintag: { rot: 'Alza de sin TAG', col: '--cat2' }
+  velocidad: { rot: 'Caída de velocidad', col: '--v1', ic: 'velocidad' },
+  flujo: { rot: 'Caída de flujo', col: '--mp2', ic: 'flujo' },
+  lectura: { rot: 'Falla de lectura', col: '--mp4', ic: 'camara' },
+  exceso: { rot: 'Exceso de velocidad', col: '--mp3', ic: 'alerta' },
+  sintag: { rot: 'Alza de sin TAG', col: '--cat2', ic: 'sintag' }
 };
 const REGLAS = {
   velocidad: { umbral: .70, grave: .50, min_ref: 40 },
@@ -2027,20 +2161,27 @@ function pintaAlertas() {
   Object.keys(TIPOS_AL).forEach(t => porTipo[t] = enAmbito.filter(a => a.tipo === t).length);
 
   document.getElementById('kpisAl').innerHTML =
-    kpi('Eventos detectados', nf(enAmbito.length), 'hasta las ' + hhmm(St.t)) +
-    kpi('Severidad alta', nf(altas), 'requieren atención', altas ? 'alert' : '') +
+    kpi('Eventos detectados', nf(enAmbito.length), 'hasta las ' + hhmm(St.t),
+        '', 'campana') +
+    kpi('Severidad alta', nf(altas), 'requieren atención', altas ? 'alert' : '',
+        'alerta') +
     kpi('Caídas de velocidad', nf(porTipo.velocidad),
-        'bajo el ' + pct(100 * REGLAS.velocidad.umbral, 0) + ' de lo habitual') +
-    kpi('Fallas de lectura', nf(porTipo.lectura), 'patentes no leídas sobre lo normal') +
-    kpi('Excesos de velocidad', nf(porTipo.exceso), 'sobre ' + nf(LIM.grave) + ' km/h') +
+        'bajo el ' + pct(100 * REGLAS.velocidad.umbral, 0) + ' de lo habitual',
+        '', 'velocidad') +
+    kpi('Fallas de lectura', nf(porTipo.lectura),
+        'patentes no leídas sobre lo normal', '', 'camara') +
+    kpi('Excesos de velocidad', nf(porTipo.exceso),
+        'sobre ' + nf(LIM.grave) + ' km/h', '', 'alerta') +
     kpi('Caídas de flujo', nf(porTipo.flujo),
-        'bajo el ' + pct(100 * REGLAS.flujo.umbral, 0) + ' de lo habitual');
+        'bajo el ' + pct(100 * REGLAS.flujo.umbral, 0) + ' de lo habitual',
+        '', 'flujo');
 
   document.getElementById('filtroAl').innerHTML =
     `<span class="chip ${St.filtroAl ? 'off' : ''}" data-t="">Todos (${enAmbito.length})</span>` +
     Object.keys(TIPOS_AL).map(t =>
       `<span class="chip ${St.filtroAl && St.filtroAl !== t ? 'off' : ''}" data-t="${t}">` +
-      `<i style="background:${css(TIPOS_AL[t].col)}"></i>${TIPOS_AL[t].rot} (${porTipo[t]})</span>`
+      `<span style="color:${css(TIPOS_AL[t].col)}">${ico(TIPOS_AL[t].ic, 'ic-in')}</span>` +
+      `${TIPOS_AL[t].rot} (${porTipo[t]})</span>`
     ).join('');
   document.querySelectorAll('#filtroAl .chip').forEach(c => c.onclick = () => {
     St.filtroAl = c.dataset.t || null;
@@ -2060,7 +2201,7 @@ function pintaAlertas() {
         <td class="sevtxt"><span class="sev sev-${a.sev}"></span>${a.sev === 'alta' ? 'Alta' : 'Media'}</td>
         <td class="num">${hhmmBin(a.binIni)}${a.binFin > a.binIni ? '–' + hhmmBin(a.binFin + 1) : ''}
             <div style="font-size:.68rem;color:var(--mut-2)">${dur} min</div></td>
-        <td><span class="tagc" style="background:${css(TIPOS_AL[a.tipo].col)}"></span>${TIPOS_AL[a.tipo].rot}</td>
+        <td style="white-space:nowrap"><span style="color:${css(TIPOS_AL[a.tipo].col)}">${ico(TIPOS_AL[a.tipo].ic, 'ic-in')}</span>${TIPOS_AL[a.tipo].rot}</td>
         <td><b>${p.codigo}</b> <span style="color:var(--mut-2)">${p.sentido}</span></td>
         <td style="font-size:.78rem;color:var(--mut)">${p.sector}</td>
         <td style="font-size:.8rem">${a.det}</td></tr>`;
@@ -2120,19 +2261,26 @@ function pintaVivo() {
     { apilado: true, fy: v => pctModo ? pct(v, 0) : nf(v), now: St.t / 86400,
       ref: pctModo ? null : refBin, h: 230 });
 
-  // --- flujo instantaneo por tipo de vehiculo: es una TASA, no un acumulado
-  const inst = CATS.map(c => ({ cat: c, v: tasaM(CAT[c], St.t, ids) }));
+  // --- flujo instantaneo por tipo de vehiculo, POR PUNTO DE CONTROL.
+  // Se divide por el numero de porticos del ambito: la suma de los 32 no
+  // describe ningun lugar del anillo.
+  const inst = CATS.map(c => ({ cat: c, v: tasaM(CAT[c], St.t, ids) / ids.length }));
   const totI = inst.reduce((a, x) => a + x.v, 0) || 1;
   grafBarras(document.getElementById('chInst'),
     CATS.map(c => ROT_CAT[c].split(' · ')[0]),
     [{ v: inst.map(x => x.v), c: css('--cat1'),
-       cf: (v, k) => css(COL_CAT[CATS[k]]), n: 'Flujo actual' }],
-    { fy: v => nf(v), h: 230, ml: 62 });
+       cf: (v, k) => css(COL_CAT[CATS[k]]), n: 'Flujo por punto' }],
+    { fy: v => nf(v, v < 10 ? 1 : 0), h: 230, ml: 62 });
   document.getElementById('chInst').insertAdjacentHTML('beforeend',
-    `<div style="margin-top:8px;font-size:.82rem;color:var(--mut)">
-       Total <b class="num">${nf(totI)}</b> veh/h · ` +
-    inst.map(x => `${ROT_CAT[x.cat].split(' · ')[0]} <b class="num">${nf(x.v)}</b>
-                   (${pct(100 * x.v / totI, 1)})`).join(' · ') + '</div>');
+    `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:14px;
+                 font-size:.82rem;color:var(--mut);align-items:center">` +
+    inst.map(x => `<span style="display:inline-flex;align-items:center;gap:6px">
+        <span style="color:${css(COL_CAT[x.cat])}">${ico(IC_CAT[x.cat], 'veh-ic')}</span>
+        <span><b class="num" style="font-size:.95rem;color:var(--ink)">${nf(x.v, x.v < 10 ? 1 : 0)}</b>
+        veh/h · ${pct(100 * x.v / totI, 1)}</span></span>`).join('') +
+    `</div><div style="margin-top:8px;font-size:.8rem;color:var(--mut-2)">
+       Total <b class="num">${nf(totI)}</b> veh/h en un punto de control promedio;
+       en el más cargado, <b class="num">${nf(flujoMaxPunto(St.t, ids).v)}</b> veh/h.</div>`);
 
   // --- hoy contra un dia normal: SOLO las horas ya medidas
   const hAct = Math.floor(St.t / 3600);
@@ -2268,19 +2416,25 @@ function chips(el, items) {
   if (prev && prev.classList && prev.classList.contains('chips')) prev.remove();
   const c = document.createElement('div');
   c.className = 'chips';
-  c.innerHTML = items.map(([t, col, dash]) =>
-    `<span class="chip" style="cursor:default"><i style="background:${dash ? 'transparent' : css(col)};` +
-    `${dash ? 'border:1.5px dashed ' + css(col) + ';' : ''}"></i>${t}</span>`).join('');
+  // el cuarto elemento, si viene, es un icono: la leyenda se lee mas rapido
+  // cuando la figura dice de que habla y no solo el color
+  c.innerHTML = items.map(([t, col, dash, icono]) =>
+    `<span class="chip" style="cursor:default">` +
+    (icono ? `<span style="color:${css(col)}">${ico(icono, 'ic-in')}</span>`
+           : `<i style="background:${dash ? 'transparent' : css(col)};` +
+             `${dash ? 'border:1.5px dashed ' + css(col) + ';' : ''}"></i>`) +
+    `${t}</span>`).join('');
   d.parentNode.insertBefore(c, d);
 }
 
 function ponChips() {
-  const catChips = CATS.map(c => [ROT_CAT[c], COL_CAT[c]]);
+  const catChips = CATS.map(c => [ROT_CAT[c], COL_CAT[c], false, IC_CAT[c]]);
   chips('chPerfil', St.perfil === 'pct' ? catChips
     : catChips.concat([['Día normal (referencia)', '--ink-lo', true]]));
   chips('chCat', catChips);
   chips('chInst', catChips);
-  chips('chMedio', CONDS.map(c => [ROT_COND[c], COL_COND[c]]));
+  const IC_COND = { CON_TAG: 'tag', SIN_TAG: 'sintag', NO_LEGIBLE: 'camara' };
+  chips('chMedio', CONDS.map(c => [ROT_COND[c], COL_COND[c], false, IC_COND[c]]));
   chips('chVsMedio', [['Hoy', '--accent'], ['Promedio de días equivalentes', '--ink-lo']]);
   chips('chDinero', [['Devengado en pórtico', '--accent']]);
   chips('chPorPortico', [['Vespucio Sur', '--avs'], ['Vespucio Norte', '--vne']]);
@@ -2290,8 +2444,8 @@ function ponChips() {
                      ['Devengado (miles de millones $)', '--seq-5']]);
   chips('chVel', [['Lento', '--v1'], ['Medio', '--v3'], ['Fluido', '--v5']]);
   chips('chFrec', [['Vehículos del padrón (miles)', '--seq-4']]);
-  chips('chExceso', [['Sobre ' + nf(LIM.legal) + ' km/h', '--mp2'],
-                     ['Sobre ' + nf(LIM.grave) + ' km/h', '--mp4']]);
+  chips('chExceso', [['Sobre ' + nf(LIM.legal) + ' km/h', '--mp2', false, 'velocidad'],
+                     ['Sobre ' + nf(LIM.grave) + ' km/h', '--mp4', false, 'alerta']]);
   chips('chDesvio', [['Dentro de lo normal', '--ink-lo'], ['Bajo lo esperado', '--v1'],
                      ['Sobre lo esperado', '--cat2']]);
 }
