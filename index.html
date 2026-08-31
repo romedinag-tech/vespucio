@@ -1157,7 +1157,6 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 <!-- ============================================================= EN VIVO -->
 <section class="sec on" id="sec-vivo">
   <div class="kpirow" id="kpis"></div>
-  <div class="aviso mini" id="notaUnidades"></div>
 
   <div class="grid g-2">
     <div class="chartbox">
@@ -1407,8 +1406,6 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
   </div>
 </section>
 
-<div class="aviso" id="avisoDatos"></div>
-
 <div class="foot">
   Prototipo de demostración · Anillo Américo Vespucio (Autopista Vespucio Sur,
   Vespucio Norte Express y Vespucio Oriente&nbsp;I).
@@ -1418,7 +1415,7 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 </div>
 </div>
 
-<div class="simnota">(simulación · v4)</div>
+<div class="simnota">(simulación · v5)</div>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2048,16 +2045,9 @@ function pintaKPIs() {
     kpi('Patente no legible', pct(100 * cIle / tot, 2), nf(cIle) + ' tránsitos',
         'alert', 'camara');
 
-  document.getElementById('notaUnidades').innerHTML =
-    `${ico('flujo', 'ic-in')}<b>Tránsitos acumulados</b> y <b>flujo por punto de
-     control</b> miden cosas distintas y no son comparables. El primero es un
-     total de vehículos que sólo puede crecer: ${nf(n)} desde la medianoche,
-     sumando lo que registran los ${ids.length} pórticos del ámbito. El segundo
-     es un ritmo instantáneo referido a <b>un</b> punto de cobro: ${nf(fp)} veh/h
-     de promedio, y ${nf(fx.v)} veh/h en el más cargado (${P[fx.i].codigo}).
-     No se suman los flujos de los ${ids.length} puntos porque esa suma no
-     describe ningún lugar del anillo — sería como sumar las velocidades de
-     varios autos. Cada pórtico del mapa muestra el suyo al pincharlo.`;
+  // La aclaracion de unidades se retiro de la pagina: el rotulo de cada KPI ya
+  // lleva su unidad -- 'vehiculos desde las 00:00' y 'veh/h · promedio de N
+  // puntos' -- que es donde corresponde que este.
 
   const tar = n ? dev / n : 0;
   document.getElementById('kpisRec').innerHTML =
@@ -2502,13 +2492,8 @@ function ponChips() {
 function pintaTexto() {
   const m = DATOS.meta, s = m.supuestos, u = DATOS.usuarios;
   const inc = s.incidentes || [];
-  document.getElementById('avisoDatos').innerHTML =
-    `${ico('alerta', 'ic-in')}<b>Demostración con datos simulados.</b> El trazado,
-     los ${NP} pórticos, sus longitudes tarificadas y las tarifas son reales, del
-     tarifario 2026 de la Dirección General de Concesiones. Los tránsitos,
-     patentes, velocidades y montos están generados para ilustrar la herramienta;
-     las patentes usan una serie que el Registro Civil no ha asignado, de modo que
-     ningún vehículo real puede coincidir.`;
+  // El aviso extenso de datos simulados se retiro: quedan la marca
+  // «(simulacion)» fija en la esquina y el rotulo del pie de pagina.
 
   // El detalle de metodo y supuestos se retiro de la pagina: esto es una
   // demostracion de la herramienta para el cliente, no un informe tecnico.
