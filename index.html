@@ -832,8 +832,13 @@ h3{font-size:1.12rem;font-weight:600;line-height:1.25}
   /* categorias de vehiculo (secuencial, no categorico: hay orden tarifario) */
   --cat1:#7FB3D5; --cat4:#C6D9F0; --cat2:#1F6FA8; --cat3:#0E3C5C;
   /* marcador temporal: chrome funcional, deliberadamente fuera de la gama
-     verde para que no se lea como un dato mas */
+     de marca para que no se lea como un dato mas */
   --now:#C55A11;
+  /* escalas DIVERGENTES centradas en cero, para desviaciones respecto al
+     patron historico. El centro es un neutro de la superficie, no un color:
+     el mensaje es "sin novedad" y no debe competir con los extremos. */
+  --dvf-neg:#B2182B; --dvf-mid:#DCE0E6; --dvf-pos:#2166AC;
+  --dvv-neg:#B2182B; --dvv-mid:#DCE0E6; --dvv-pos:#1B7837;
   --gap:16px; --maxw:1680px;
 }
 :root[data-theme="dark"]{
@@ -847,6 +852,8 @@ h3{font-size:1.12rem;font-weight:600;line-height:1.25}
   --vne-soft:#B18CF022; --avs-soft:#5FBF8C22;
   --cat1:#5C93B8; --cat4:#8FB4CE; --cat2:#3D93CE; --cat3:#9FC9E8;
   --now:#FF9D2F;
+  --dvf-neg:#E4585F; --dvf-mid:#39404E; --dvf-pos:#5B9BD5;
+  --dvv-neg:#E4585F; --dvv-mid:#39404E; --dvv-pos:#4FB870;
 }
 
 *{box-sizing:border-box}
@@ -996,6 +1003,24 @@ svg.chart .now{stroke:var(--now);stroke-width:2}
   background:var(--surface);color:var(--ink);font-weight:600;font-size:.85rem;
   font-family:var(--font-ui);min-width:290px}
 .ambito-txt{font-size:.78rem;color:var(--mut-2)}
+
+/* -------------------------------------------- marcadores de alerta en mapa */
+/* El evento se ve donde ocurre. El icono dice de que tipo es y el anillo
+   pulsante, que sigue activo en este momento. */
+.almark{display:flex;align-items:center;justify-content:center;
+  border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.almark svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
+.almark.viva{animation:pulso 1.8s ease-out infinite}
+@keyframes pulso{
+  0%{box-shadow:0 2px 6px rgba(0,0,0,.45),0 0 0 0 var(--pulso,rgba(178,24,43,.55))}
+  70%{box-shadow:0 2px 6px rgba(0,0,0,.45),0 0 0 13px rgba(0,0,0,0)}
+  100%{box-shadow:0 2px 6px rgba(0,0,0,.45),0 0 0 0 rgba(0,0,0,0)}
+}
+@media(prefers-reduced-motion:reduce){.almark.viva{animation:none}}
+.popal h4{display:flex;align-items:center;gap:7px}
+.popal .sevpill{font-size:.64rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 7px;border-radius:10px;color:#fff}
 
 /* -------------------------------------------------------------- alertas */
 .badge{display:none;min-width:19px;height:19px;padding:0 5px;border-radius:10px;
@@ -1161,22 +1186,32 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
   <div class="grid g-2">
     <div class="chartbox">
       <h3>Estado del anillo</h3>
-      <p>El trazado se pinta con la velocidad de recorrido de cada tramo y cada
-         círculo es un pórtico, con tamaño proporcional al flujo que registra en
-         este momento. Haz clic en un pórtico para verlo en detalle.</p>
+      <p>El trazado y los pórticos se pintan con el indicador elegido, en la
+         misma escala. Las vistas de <b>desviación</b> comparan cada pórtico con
+         su propio patrón histórico a esa hora, y no con un valor absoluto. Los
+         eventos detectados aparecen marcados sobre el punto donde ocurren.</p>
       <div class="mapctl">
         <label for="selInd"><b>Colorear por</b></label>
         <select id="selInd">
-          <option value="vel">Velocidad de recorrido</option>
-          <option value="flujo">Flujo instantáneo</option>
-          <option value="sintag">Tránsitos sin TAG</option>
-          <option value="conc">Concesión</option>
+          <optgroup label="Estado actual">
+            <option value="vel">Velocidad de recorrido</option>
+            <option value="flujo">Flujo instantáneo</option>
+            <option value="sintag">Tránsitos sin TAG</option>
+          </optgroup>
+          <optgroup label="Desviación respecto al patrón histórico">
+            <option value="desvflujo">Flujo vs. lo normal</option>
+            <option value="desvvel">Velocidad vs. lo normal</option>
+          </optgroup>
+          <optgroup label="Referencia">
+            <option value="conc">Concesión</option>
+          </optgroup>
         </select>
         <span class="basebtns" id="baseBtns" role="group" aria-label="Fondo del mapa">
           <button data-base="claro" class="on">Mapa</button>
           <button data-base="calles">Calles</button>
           <button data-base="satelite">Satélite</button>
         </span>
+        <label><input type="checkbox" id="chkAlertas" checked> Alertas en el mapa</label>
         <label><input type="checkbox" id="chkAVO" checked> AVO I</label>
       </div>
       <div id="mapa"></div>
@@ -1416,7 +1451,7 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 </div>
 </div>
 
-<div class="simnota">(simulación · v6)</div>
+<div class="simnota">(simulación · v7)</div>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -1487,7 +1522,8 @@ function horaEfectiva() {
   return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
 }
 const St = { t: horaEfectiva(), play: true, vel: 1, ind: 'vel', base: 'claro',
-             perfil: 'vol', ambito: 'todo', binPintado: -1, filtroAl: null };
+             perfil: 'vol', ambito: 'todo', binPintado: -1, filtroAl: null,
+             verAlertas: true };
 
 const binDe = t => Math.min(NB - 1, Math.floor(t / SEGBIN));
 const fracDe = t => (t % SEGBIN) / SEGBIN;
@@ -1729,7 +1765,39 @@ const ESC_VEL = [[0, '--v1'], [35, '--v2'], [55, '--v3'], [72, '--v4'], [88, '--
 function colVel(v) { let c = ESC_VEL[0][1]; for (const [u, t] of ESC_VEL) if (v >= u) c = t; return css(c); }
 const ESC_ST = [[0, '--v5'], [4.5, '--v4'], [5.5, '--v3'], [6.5, '--v2'], [7.5, '--v1']];
 function colST(v) { let c = ESC_ST[0][1]; for (const [u, t] of ESC_ST) if (v >= u) c = t; return css(c); }
-const colConc = c => css(c === 'AVS' ? '--avs' : c === 'VNE' ? '--vne' : '--avo');
+const colConc = c => css(c === 'AVS' ? '--avs' : c === 'VNE' ? '--vne'
+                        : c === 'CN' ? '--cn' : '--avo');
+
+/* ---- escala divergente centrada en cero, para desviaciones vs. el patron ---- */
+function hex2rgb(h) {
+  h = (h || '').trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0,
+          parseInt(h.slice(4, 6), 16) || 0];
+}
+function mezcla(a, b, u) {
+  const A = hex2rgb(a), B = hex2rgb(b);
+  return 'rgb(' + A.map((x, i) => Math.round(x + (B[i] - x) * u)).join(',') + ')';
+}
+/** v en %, max = saturacion de la escala. Devuelve color continuo. */
+function colDiv(v, max, pre) {
+  const u = Math.max(-1, Math.min(1, (v || 0) / max));
+  const mid = css('--' + pre + '-mid');
+  return u < 0 ? mezcla(mid, css('--' + pre + '-neg'), -u)
+               : mezcla(mid, css('--' + pre + '-pos'), u);
+}
+const MAX_DVF = 40, MAX_DVV = 30;   // saturacion de cada escala, en %
+
+/** desviacion del flujo acumulado del dia respecto al patron, en % */
+function desvFlujo(i, t) {
+  const obs = acumM(SPB.n, t, [i]), ref = acumM(NREF, t, [i]);
+  return ref > 20 ? 100 * (obs / ref - 1) : null;
+}
+/** desviacion de la velocidad del tramo respecto a su patron a esta hora, en % */
+function desvVel(i, t) {
+  const b = binDe(t), v = VT[i][b], vr = VREF[i][b];
+  return (vr > 15 && v > 0) ? 100 * (v / vr - 1) : null;
+}
 function colFlujo(f, fmax) {
   const ramp = ['--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
   return css(ramp[Math.min(4, Math.floor(Math.min(f / (fmax || 1), 1) * 5))]);
@@ -1799,7 +1867,8 @@ function spark(vals, color, hastaFrac) {
 }
 
 /* ================================================================== MAPA */
-let mapa, capaPort, capaTraza = {}, capaVia, capaBase, basesLyr = {}, capaEtiq, capaCN;
+let mapa, capaPort, capaTraza = {}, capaVia, capaBase, basesLyr = {}, capaEtiq,
+    capaCN, capaAlertas;
 let segmentos = [];
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 const BASES = {
@@ -1896,6 +1965,7 @@ function iniMapa() {
 
   capaVia = L.layerGroup().addTo(mapa);
   capaPort = L.layerGroup().addTo(mapa);
+  capaAlertas = L.layerGroup().addTo(mapa);   // va encima de los porticos
 
   capaEtiq = L.tileLayer(
     ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
@@ -1931,6 +2001,8 @@ function valorInd(i, t) {
   const b = binDe(t);
   if (St.ind === 'vel') return VT[i][b];
   if (St.ind === 'flujo') return SPB.n[i][b] * BINH;
+  if (St.ind === 'desvflujo') return desvFlujo(i, t);
+  if (St.ind === 'desvvel') return desvVel(i, t);
   if (St.ind === 'sintag') {
     const tot = CONDS.reduce((a, c) => a + acumM(COND[c], t, [i]), 0);
     return tot ? 100 * acumM(COND.SIN_TAG, t, [i]) / tot : 0;
@@ -1940,8 +2012,12 @@ function valorInd(i, t) {
 function colorDe(v, fmax) {
   if (St.ind === 'vel') return v ? colVel(v) : css('--line-2');
   if (St.ind === 'flujo') return colFlujo(v, fmax);
+  if (St.ind === 'desvflujo') return v === null ? css('--line-2') : colDiv(v, MAX_DVF, 'dvf');
+  if (St.ind === 'desvvel') return v === null ? css('--line-2') : colDiv(v, MAX_DVV, 'dvv');
   return colST(v);
 }
+/** las vistas de desviacion se promedian; el flujo se toma por el maximo */
+const esDesv = () => St.ind === 'desvflujo' || St.ind === 'desvvel';
 
 function pintaMapa() {
   if (!mapa || !capaPort) return;
@@ -1954,7 +2030,8 @@ function pintaMapa() {
 
   // --- la VIA pintada con el indicador seleccionado
   segmentos.forEach(sg => {
-    const vals = sg.pis.map(i => valorInd(i, t)).filter(v => v !== null && v > 0);
+    const vals = sg.pis.map(i => valorInd(i, t))
+                       .filter(v => v !== null && (esDesv() || v > 0));
     let col;
     if (St.ind === 'conc') col = colConc(sg.conc);
     else if (!vals.length) col = css('--line-2');
@@ -1979,8 +2056,13 @@ function pintaMapa() {
       weight: foco === i ? 2.5 : 1.3
     });
     const tot = CONDS.reduce((a, c) => a + acumM(COND[c], t, [i]), 0);
-    m.bindTooltip(`<b>${p.codigo}</b> · ${nf(f)} veh/h · ${nf(VT[i][b])} km/h`,
-                  { direction: 'top' });
+    const df = desvFlujo(i, t), dvv = desvVel(i, t);
+    const sig = x => (x > 0 ? '+' : '') + pct(x, 1);
+    m.bindTooltip(
+      `<b>${p.codigo}</b> · ${nf(f)} veh/h · ${nf(VT[i][b])} km/h` +
+      (St.ind === 'desvflujo' && df !== null ? ` · flujo ${sig(df)} vs. lo normal` : '') +
+      (St.ind === 'desvvel' && dvv !== null ? ` · velocidad ${sig(dvv)} vs. lo normal` : ''),
+      { direction: 'top' });
     m.bindPopup(
       `<h4>${p.codigo} · ${p.concesion}</h4><table>
        <tr><td>Sector</td><td>${p.sector}</td></tr>
@@ -1991,7 +2073,9 @@ function pintaMapa() {
        <tr><td>Tránsitos del día</td><td>${nf(acumM(SPB.n, t, [i]))}</td></tr>
        <tr><td>Sin TAG</td><td>${pct(tot ? 100 * acumM(COND.SIN_TAG, t, [i]) / tot : 0, 2)}</td></tr>
        <tr><td>Patente no legible</td><td>${pct(tot ? 100 * acumM(COND.NO_LEGIBLE, t, [i]) / tot : 0, 2)}</td></tr>
-       <tr><td>Devengado</td><td>${MM(acumM(SPB.dev, t, [i]))}</td></tr></table>
+       <tr><td>Devengado</td><td>${MM(acumM(SPB.dev, t, [i]))}</td></tr>
+       <tr><td>Flujo vs. patrón</td><td>${df === null ? '—' : sig(df)}</td></tr>
+       <tr><td>Velocidad vs. patrón</td><td>${dvv === null ? '—' : sig(dvv)}</td></tr></table>
        <button class="popbtn" data-pi="${i}">Ver sólo este pórtico</button>`);
     m.on('popupopen', e => {
       const btn = e.popup.getElement().querySelector('.popbtn');
@@ -1999,7 +2083,61 @@ function pintaMapa() {
     });
     capaPort.addLayer(m);
   });
+  pintaAlertasMapa();
   pintaLeyenda();
+}
+
+/** Los eventos se ven DONDE ocurren. Un porticocon varias alertas muestra un
+ *  solo marcador, el de mayor severidad, y las lista todas en el globo. El
+ *  anillo pulsante indica que el evento sigue activo en este instante. */
+function pintaAlertasMapa() {
+  if (!capaAlertas) return;
+  capaAlertas.clearLayers();
+  if (!St.verAlertas) return;
+  const b = binDe(St.t);
+  const todas = detectaAlertas(b).filter(a => idxs().indexOf(a.i) >= 0);
+  if (!todas.length) return;
+
+  const porPortico = {};
+  todas.forEach(a => (porPortico[a.i] = porPortico[a.i] || []).push(a));
+
+  Object.keys(porPortico).forEach(k => {
+    const i = +k, lista = porPortico[k], p = P[i];
+    const viva = lista.some(a => a.binIni <= b && b <= a.binFin);
+    const alta = lista.some(a => a.sev === 'alta');
+    // el marcador toma el tipo de la alerta mas relevante del portico
+    const pri = lista.slice().sort((x, y) =>
+      (x.sev === y.sev ? 0 : x.sev === 'alta' ? -1 : 1) || y.binFin - x.binFin)[0];
+    const col = css(TIPOS_AL[pri.tipo].col);
+    const d = alta ? 26 : 22;
+    const icono = L.divIcon({
+      className: '',
+      html: `<div class="almark${viva ? ' viva' : ''}" style="width:${d}px;height:${d}px;
+             background:${col};--pulso:${col}">${ico(TIPOS_AL[pri.tipo].ic, '')}</div>`,
+      iconSize: [d, d], iconAnchor: [d / 2, d + 8]
+    });
+    const m = L.marker([p.lat, p.lon], { icon: icono, zIndexOffset: alta ? 900 : 700 });
+    m.bindTooltip(`<b>${p.codigo}</b> · ${lista.length} ` +
+                  (lista.length === 1 ? 'evento' : 'eventos'), { direction: 'top' });
+    m.bindPopup(
+      `<div class="popal"><h4>${p.codigo} · ${p.sector}
+         <span class="sevpill" style="background:${alta ? css('--red') : css('--mp2')}">
+         ${alta ? 'alta' : 'media'}</span></h4>
+       <table>` +
+      lista.map(a => `<tr><td style="color:${css(TIPOS_AL[a.tipo].col)}">
+          ${ico(TIPOS_AL[a.tipo].ic, 'ic-in')}${TIPOS_AL[a.tipo].rot}</td>
+        <td>${hhmmBin(a.binIni)}${a.binFin > a.binIni ? '–' + hhmmBin(a.binFin + 1) : ''}
+          <div style="font-size:.7rem;color:var(--mut-2)">${a.det}</div></td></tr>`).join('') +
+      `</table><button class="popbtn" data-al="1">Ver todos los eventos</button></div>`);
+    m.on('popupopen', e => {
+      const btn = e.popup.getElement().querySelector('.popbtn');
+      if (btn) btn.onclick = () => {
+        mapa.closePopup();
+        document.querySelector('.tabs button[data-sec="alertas"]').click();
+      };
+    });
+    capaAlertas.addLayer(m);
+  });
 }
 
 function pintaLeyenda() {
@@ -2011,7 +2149,26 @@ function pintaLeyenda() {
       <span>${fmt(arr[0][0])}</span><span>${fmt(arr[arr.length - 1][0])}+</span></div>`;
   const pie = '<div style="margin-top:5px;opacity:.75;font-size:.68rem">' +
               'La vía y los pórticos usan la misma escala</div>';
-  if (St.ind === 'vel')
+  /** barra continua para escalas divergentes centradas en cero */
+  const barraDiv = (max, pre, rotNeg, rotPos) => {
+    const n = 9, tramos = [];
+    for (let k = 0; k < n; k++) {
+      const v = -max + 2 * max * k / (n - 1);
+      tramos.push(`<span style="background:${colDiv(v, max, pre)}"></span>`);
+    }
+    return `<div class="esc">${tramos.join('')}</div>
+      <div style="display:flex;justify-content:space-between;font-size:.68rem">
+        <span>−${max}%</span><span>0</span><span>+${max}%</span></div>
+      <div style="margin-top:4px;font-size:.66rem;opacity:.8">
+        ${rotNeg} · ${rotPos}</div>`;
+  };
+  if (St.ind === 'desvflujo')
+    d.innerHTML = '<b>Flujo vs. patrón histórico</b>' +
+      barraDiv(MAX_DVF, 'dvf', 'bajo lo esperado', 'sobre lo esperado') + pie;
+  else if (St.ind === 'desvvel')
+    d.innerHTML = '<b>Velocidad vs. patrón histórico</b>' +
+      barraDiv(MAX_DVV, 'dvv', 'más lento', 'más rápido') + pie;
+  else if (St.ind === 'vel')
     d.innerHTML = '<b>Velocidad del tramo (km/h)</b>' + barra(ESC_VEL, v => nf(v)) + pie;
   else if (St.ind === 'sintag')
     d.innerHTML = '<b>Tránsitos sin TAG</b>' + barra(ESC_ST, v => pct(v, 0)) + pie;
@@ -2641,6 +2798,10 @@ function init() {
     pintaVivo(); ponChips();
   });
   document.getElementById('selInd').onchange = e => { St.ind = e.target.value; pintaMapa(); };
+  document.getElementById('chkAlertas').onchange = e => {
+    St.verAlertas = e.target.checked;
+    pintaAlertasMapa();
+  };
   document.getElementById('chkAVO').onchange = e => {
     if (!capaTraza.AVO) return;
     if (e.target.checked) capaTraza.AVO.addTo(mapa); else mapa.removeLayer(capaTraza.AVO);
