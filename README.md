@@ -9,4 +9,4 @@ de la Dirección General de Concesiones (MOP). La recaudación anual y la
 incobrabilidad declarada provienen de los estados financieros ante la
 CMF. Las patentes usan una serie que el Registro Civil no ha asignado.
 
-Versión 11 · 2026-08-31 14:46
+Versión 12 · 2026-08-31 14:53

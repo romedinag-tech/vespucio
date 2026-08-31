@@ -1332,39 +1332,39 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 <section class="sec" id="sec-alertas">
   <div class="kpirow" id="kpisAl"></div>
 
-  <div class="chartbox">
-    <h3>D&oacute;nde est&aacute;n ocurriendo</h3>
-    <p>Cada evento detectado, sobre el punto donde ocurre. El s&iacute;mbolo indica el
-       tipo y el anillo pulsante, que sigue activo en este momento. Haz clic para
-       ver el detalle de ese punto de cobro.</p>
-    <div class="mapctl">
-      <span class="basebtns" data-mapa="mapaAl" role="group" aria-label="Fondo del mapa">
-        <button data-base="claro" class="on">Mapa</button>
-        <button data-base="calles">Calles</button>
-        <button data-base="satelite">Sat&eacute;lite</button>
-      </span>
+  <div class="grid g-11">
+    <div class="chartbox">
+      <h3>Dónde están ocurriendo</h3>
+      <p>Cada evento detectado, sobre el punto donde ocurre. El símbolo indica el
+         tipo y el anillo pulsante, que sigue activo en este momento.</p>
+      <div class="mapctl">
+        <span class="basebtns" data-mapa="mapaAl" role="group" aria-label="Fondo del mapa">
+          <button data-base="claro" class="on">Mapa</button>
+          <button data-base="calles">Calles</button>
+          <button data-base="satelite">Satélite</button>
+        </span>
+      </div>
+      <div id="mapaAl" class="mapa2"></div>
+      <div class="src"><b>Nota:</b> muestra los eventos del ámbito seleccionado
+        hasta la hora en curso; los intervalos consecutivos de un mismo pórtico y
+        tipo se agrupan en un solo marcador.</div>
     </div>
-    <div id="mapaAl" class="mapa2"></div>
-    <div class="src"><b>Nota:</b> el mapa muestra los eventos del &aacute;mbito
-      seleccionado y hasta la hora en curso; los intervalos consecutivos de un
-      mismo p&oacute;rtico y tipo se agrupan en un solo marcador.</div>
-  </div>
 
-  <div class="chartbox">
-    <h3>Eventos detectados hoy</h3>
-    <p>El tablero no lee una lista de incidentes: los <b>detecta</b> comparando
-       cada pórtico consigo mismo —con su propio patrón de un día equivalente— y
-       con los umbrales operacionales. Los intervalos consecutivos de un mismo
-       pórtico y tipo se agrupan en un solo evento.</p>
-    <div class="chips" id="filtroAl"></div>
-    <div class="scroll" style="max-height:560px">
-      <table class="dt" id="tblAlertas"><thead><tr>
-        <th scope="col">Sev.</th><th scope="col">Hora</th><th scope="col">Tipo</th>
-        <th scope="col">Pórtico</th><th scope="col">Sector</th>
-        <th scope="col">Detalle</th>
-      </tr></thead><tbody></tbody></table>
+    <div class="chartbox">
+      <h3>Eventos detectados hoy</h3>
+      <p>El tablero no lee una lista de incidentes: los <b>detecta</b> comparando
+         cada pórtico consigo mismo —con su propio patrón de un día equivalente—
+         y con los umbrales operacionales.</p>
+      <div class="chips" id="filtroAl"></div>
+      <div class="scroll" style="max-height:430px">
+        <table class="dt" id="tblAlertas"><thead><tr>
+          <th scope="col">Sev.</th><th scope="col">Hora</th><th scope="col">Tipo</th>
+          <th scope="col">Pórtico</th><th scope="col">Sector</th>
+          <th scope="col">Detalle</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="src" id="reglasAl"></div>
     </div>
-    <div class="src" id="reglasAl"></div>
   </div>
 
   <div class="grid g-11" style="margin-top:16px">
@@ -1484,21 +1484,31 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 <section class="sec" id="sec-panorama">
   <div class="kpirow" id="kpisPan"></div>
 
-  <div class="chartbox">
-    <h3>Ingreso por kilómetro de concesión</h3>
-    <p>Comparar el peaje total de dos concesiones de distinto largo no dice nada:
-       la que tiene más kilómetros cobra más veces por el mismo viaje. Al
-       normalizar por kilómetro tarificado, la comparación se vuelve legítima y
-       aparece el verdadero rendimiento de cada corredor.</p>
-    <div id="chPanKm"></div>
-    <div class="src"><b>Fuente:</b> peaje devengado declarado en los EEFF ante la
-      CMF, dividido por la longitud tarificada de cada concesión.
-      <b>Notas:</b> (i) la longitud sale de sumar los sectores contiguos de un
-      sentido en el propio tarifario DGC; (ii) es dato anual real, no
-      interpolado.</div>
-  </div>
+  <div class="grid g-11">
+    <div class="chartbox">
+      <h3>Dinámica por punto de cobro</h3>
+      <p>Cada estación marcada según si gana o pierde participación dentro de su
+         propio corredor: flecha arriba si crece más rápido que su concesión,
+         abajo si crece más lento, y raya si va en línea. Incluye los pórticos
+         propios y los de la competencia. Haz clic en cualquiera para ver su
+         evolución.</p>
+      <div class="mapctl">
+        <span class="basebtns" data-mapa="mapaPan" role="group" aria-label="Fondo del mapa">
+          <button data-base="claro" class="on">Mapa</button>
+          <button data-base="calles">Calles</button>
+          <button data-base="satelite">Satélite</button>
+        </span>
+        <label><input type="checkbox" id="chkPanPropios" checked> Vespucio</label>
+        <label><input type="checkbox" id="chkPanCompe" checked> Costanera Norte</label>
+      </div>
+      <div id="mapaPan" class="mapa2"></div>
+      <div id="detPan" class="detpanel"></div>
+      <div class="src"><b>Cómo leerlo:</b> la clasificación es <b>relativa a su
+        propia concesión</b>. Como todos los corredores crecen, clasificar por la
+        tasa absoluta dejaría todos los puntos al alza y el mapa no diría nada; lo
+        que informa es quién gana y quién pierde peso dentro de su corredor.</div>
+    </div>
 
-  <div class="grid g-11" style="margin-top:16px">
     <div class="chartbox">
       <h3>Ritmo de crecimiento · índice base 100</h3>
       <p>Cada concesión indexada a 100 en su primer año comparable. Responde la
@@ -1508,138 +1518,124 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
       <div class="src"><b>Notas:</b> (i) el índice elimina la diferencia de
         tamaño y deja sólo la dinámica; (ii) la caída de 2020 es el efecto de la
         pandemia sobre el tránsito urbano.</div>
+      <h3 style="margin-top:18px">Incobrabilidad comparada</h3>
+      <p>Porcentaje de peaje devengado que cada sociedad reconoce como
+         incobrable.</p>
+      <div id="chPanIncob"></div>
+      <div class="src"><b>Nota:</b> Vespucio Norte cambió de definición en 2022
+        —hasta 2021 declaraba por segmento de usuario—, de modo que su serie no es
+        homogénea en ese corte.</div>
+    </div>
+  </div>
+
+  <div class="chartbox" style="margin-top:16px">
+    <h3>Ingreso por kilómetro de concesión</h3>
+    <p>Comparar el peaje total de dos concesiones de distinto largo no dice nada:
+       la que tiene más kilómetros cobra más veces por el mismo viaje. Al
+       normalizar por kilómetro tarificado, la comparación se vuelve legítima y
+       aparece el verdadero rendimiento de cada corredor.</p>
+    <div id="chPanKm"></div>
+    <div class="src"><b>Fuente:</b> peaje devengado declarado en los EEFF ante la
+      CMF, dividido por la longitud tarificada de cada concesión.</div>
+  </div>
+
+  <div class="grid g-11" style="margin-top:16px">
+    <div class="chartbox">
+      <h3>Estacionalidad mensual del ingreso</h3>
+      <p>Reparto del ingreso a lo largo del año. Permite ver en qué meses se
+         concentra la recaudación y anticipar el flujo de caja.</p>
+      <div class="mapctl" style="margin-bottom:6px">
+        <label for="selPanAnio"><b>Año</b></label>
+        <select id="selPanAnio"></select>
+      </div>
+      <div id="chPanMes"></div>
+      <div class="src" id="srcPanMes"></div>
     </div>
     <div class="chartbox">
-      <h3>Incobrabilidad comparada</h3>
-      <p>Porcentaje de peaje devengado que cada sociedad reconoce como
-         incobrable. Es la medida directa de cuánto del ingreso se pierde en el
-         circuito del no pago.</p>
-      <div id="chPanIncob"></div>
-      <div class="src"><b>Fuente:</b> notas a los EEFF ante la CMF.
-        <b>Nota:</b> Vespucio Norte cambió de definición en 2022 —hasta 2021
-        declaraba por segmento de usuario—, de modo que su serie no es homogénea
-        en ese corte.</div>
+      <h3>Cuadro comparativo</h3>
+      <p>Situación del último ejercicio cerrado, con el cliente destacado.</p>
+      <div id="chPanTabla"></div>
     </div>
   </div>
-
-  <div class="chartbox" style="margin-top:16px">
-    <h3>Estacionalidad mensual del ingreso</h3>
-    <p>Reparto del ingreso a lo largo del año. Permite ver en qué meses se
-       concentra la recaudación y anticipar el flujo de caja.</p>
-    <div class="mapctl" style="margin-bottom:6px">
-      <label for="selPanAnio"><b>Año</b></label>
-      <select id="selPanAnio"></select>
-    </div>
-    <div id="chPanMes"></div>
-    <div class="src" id="srcPanMes"></div>
-  </div>
-
-  <div class="chartbox" style="margin-top:16px">
-    <h3>Cuadro comparativo</h3>
-    <p>Situación del último ejercicio cerrado, con el cliente destacado.</p>
-    <div id="chPanTabla"></div>
-  </div>
-
-  <div class="chartbox" style="margin-top:16px">
-    <h3>Din&aacute;mica por punto de cobro</h3>
-    <p>Cada estaci&oacute;n de cobro marcada seg&uacute;n si gana o pierde participaci&oacute;n dentro
-       de su propio corredor: flecha arriba si crece m&aacute;s r&aacute;pido que su concesi&oacute;n,
-       abajo si crece m&aacute;s lento, y raya si va en l&iacute;nea. Incluye tanto los p&oacute;rticos
-       propios como los de la competencia. Haz clic en cualquiera para ver su
-       evoluci&oacute;n.</p>
-    <div class="mapctl">
-      <span class="basebtns" data-mapa="mapaPan" role="group" aria-label="Fondo del mapa">
-        <button data-base="claro" class="on">Mapa</button>
-        <button data-base="calles">Calles</button>
-        <button data-base="satelite">Sat&eacute;lite</button>
-      </span>
-      <label><input type="checkbox" id="chkPanPropios" checked> Vespucio (propios)</label>
-      <label><input type="checkbox" id="chkPanCompe" checked> Costanera Norte</label>
-    </div>
-    <div id="mapaPan" class="mapa2"></div>
-    <div id="detPan" class="detpanel"></div>
-    <div class="src"><b>C&oacute;mo leerlo:</b> la clasificaci&oacute;n es <b>relativa a su propia
-      concesi&oacute;n</b>. Como todos los corredores crecen, clasificar por la tasa
-      absoluta dejar&iacute;a todos los puntos al alza y el mapa no dir&iacute;a nada; lo que
-      informa es qui&eacute;n gana y qui&eacute;n pierde peso dentro de su corredor.</div>
-  </div>
-
 </section>
 
 <!-- ========================================================== TENDENCIAS -->
 <section class="sec" id="sec-tendencias">
   <div class="kpirow" id="kpisTend"></div>
 
-  <div class="chartbox">
-    <h3>Ingreso anual y proyecci&oacute;n</h3>
-    <p>Serie hist&oacute;rica de peaje devengado y su proyecci&oacute;n, con la banda de
-       incertidumbre que corresponde a cada horizonte. La banda se abre con el
-       tiempo porque proyectar a dos a&ntilde;os es menos seguro que proyectar a uno.</p>
-    <div class="mapctl" style="margin-bottom:6px">
-      <label for="selTendConc"><b>Concesi&oacute;n</b></label>
-      <select id="selTendConc"></select>
+  <div class="grid g-11">
+    <div class="chartbox">
+      <h3>Tendencia sobre el territorio</h3>
+      <p>Haz clic en un <b>arco de autopista</b> para ver la tendencia de esa
+         concesión completa, o en un <b>pórtico</b> para ver la suya. El detalle
+         aparece bajo el mapa y los gráficos cambian con la selección.</p>
+      <div class="mapctl">
+        <span class="basebtns" data-mapa="mapaTend" role="group" aria-label="Fondo del mapa">
+          <button data-base="claro" class="on">Mapa</button>
+          <button data-base="calles">Calles</button>
+          <button data-base="satelite">Satélite</button>
+        </span>
+      </div>
+      <div id="mapaTend" class="mapa2"></div>
+      <div id="detTend" class="detpanel"></div>
+      <div class="src"><b>Nota:</b> el color del punto sigue la misma escala de
+        dinámica del panorama; el grosor del arco distingue la concesión
+        seleccionada.</div>
     </div>
-    <div id="chTendProy"></div>
-    <div class="src" id="srcTendProy"></div>
+
+    <div class="chartbox">
+      <h3>Ingreso anual y proyección</h3>
+      <p>Serie histórica de peaje devengado y su proyección, con la banda de
+         incertidumbre que corresponde a cada horizonte. La banda se abre con el
+         tiempo porque proyectar a dos años es menos seguro que proyectar a uno.</p>
+      <div class="mapctl" style="margin-bottom:6px">
+        <label for="selTendConc"><b>Concesión</b></label>
+        <select id="selTendConc"></select>
+      </div>
+      <div id="chTendProy"></div>
+      <div class="src" id="srcTendProy"></div>
+    </div>
   </div>
 
   <div class="grid g-11" style="margin-top:16px">
     <div class="chartbox">
-      <h3>Variaci&oacute;n interanual</h3>
-      <p>Cu&aacute;nto creci&oacute; o cay&oacute; el ingreso cada a&ntilde;o respecto al anterior. Es la
+      <h3>Variación interanual</h3>
+      <p>Cuánto creció o cayó el ingreso cada año respecto al anterior. Es la
          lectura que separa el crecimiento sostenido del rebote puntual.</p>
       <div id="chTendVar"></div>
-      <div class="src"><b>Notas:</b> (i) la ca&iacute;da de 2020 y el rebote de 2021 son
-        el shock de la pandemia y su recuperaci&oacute;n, y por eso se excluyen del
-        c&aacute;lculo de la dispersi&oacute;n normal; (ii) es dato anual real de los EEFF.</div>
+      <div class="src"><b>Notas:</b> (i) la caída de 2020 y el rebote de 2021 son
+        el shock de la pandemia y su recuperación, y por eso se excluyen del
+        cálculo de la dispersión normal; (ii) es dato anual real de los EEFF.</div>
     </div>
     <div class="chartbox">
       <h3>Ritmo comparado entre concesiones</h3>
-      <p>Tasa de crecimiento anual compuesta de los &uacute;ltimos tres a&ntilde;os. Es la
-         medida m&aacute;s estable del ritmo, porque promedia y no depende de un solo
-         a&ntilde;o.</p>
+      <p>Tasa de crecimiento anual compuesta de los últimos tres años. Es la
+         medida más estable del ritmo, porque promedia y no depende de un solo
+         año.</p>
       <div id="chTendComp"></div>
-      <div class="src"><b>Nota:</b> la tendencia ajustada sobre seis a&ntilde;os incluye la
-        recuperaci&oacute;n posterior a 2020 y por eso resulta m&aacute;s alta que la tasa de
-        tres a&ntilde;os; para decidir conviene mirar la de tres.</div>
+      <div class="src"><b>Nota:</b> la tendencia ajustada sobre seis años incluye
+        la recuperación posterior a 2020 y por eso resulta más alta que la tasa de
+        tres años; para decidir conviene mirar la de tres.</div>
     </div>
   </div>
 
-  <div class="chartbox" style="margin-top:16px">
-    <h3>Perfil de estacionalidad</h3>
-    <p>Reparto del ingreso a lo largo del a&ntilde;o que se usa para llevar la
-       proyecci&oacute;n anual a meses.</p>
-    <div id="chTendEst"></div>
-    <div class="src" id="srcTendEst"></div>
-  </div>
-
-  <div class="chartbox" style="margin-top:16px">
-    <h3>Proyecci&oacute;n mensual</h3>
-    <p>Los pr&oacute;ximos veinticuatro meses, con la banda de incertidumbre. Sirve para
-       anticipar el flujo de caja mes a mes, no s&oacute;lo el total del ejercicio.</p>
-    <div id="chTendMes"></div>
-    <div class="src" id="srcTendMes"></div>
-  </div>
-
-  <div class="chartbox" style="margin-top:16px">
-    <h3>Tendencia sobre el territorio</h3>
-    <p>Haz clic en un <b>arco de autopista</b> para ver la tendencia de esa
-       concesi&oacute;n completa, o en un <b>p&oacute;rtico</b> para ver la suya. El detalle
-       aparece bajo el mapa y el gr&aacute;fico de arriba cambia con la selecci&oacute;n.</p>
-    <div class="mapctl">
-      <span class="basebtns" data-mapa="mapaTend" role="group" aria-label="Fondo del mapa">
-        <button data-base="claro" class="on">Mapa</button>
-        <button data-base="calles">Calles</button>
-        <button data-base="satelite">Sat&eacute;lite</button>
-      </span>
+  <div class="grid g-11" style="margin-top:16px">
+    <div class="chartbox">
+      <h3>Perfil de estacionalidad</h3>
+      <p>Reparto del ingreso a lo largo del año que se usa para llevar la
+         proyección anual a meses.</p>
+      <div id="chTendEst"></div>
+      <div class="src" id="srcTendEst"></div>
     </div>
-    <div id="mapaTend" class="mapa2"></div>
-    <div id="detTend" class="detpanel"></div>
-    <div class="src"><b>Nota:</b> el color del punto sigue la misma escala de
-      din&aacute;mica del panorama; el grosor del arco no codifica nada, s&oacute;lo distingue la
-      concesi&oacute;n seleccionada.</div>
+    <div class="chartbox">
+      <h3>Proyección mensual</h3>
+      <p>Los próximos veinticuatro meses, con la banda de incertidumbre. Sirve
+         para anticipar el flujo de caja mes a mes, no sólo el total del
+         ejercicio.</p>
+      <div id="chTendMes"></div>
+      <div class="src" id="srcTendMes"></div>
+    </div>
   </div>
-
 </section>
 
 <!-- =========================================================== HISTÓRICO -->
@@ -1688,7 +1684,7 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 </div>
 </div>
 
-<div class="simnota">(simulación · v11)</div>
+<div class="simnota">(simulación · v12)</div>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2512,11 +2508,16 @@ function svgMini(datos, w, h, conTexto) {
 
 /** tamano del minigrafico segun el zoom: invisible de lejos, legible de cerca */
 function tamMini(z) {
-  if (z <= 11) return null;          // a esta escala solo estorbaria
-  if (z === 12) return [16, 12];
-  if (z === 13) return [24, 18];
-  if (z === 14) return [34, 26];
-  return [46, 34];
+  // El mapa arranca en zoom 11. Ocultarlos por debajo de 12 los dejaba
+  // invisibles al abrir el tablero y parecia que la funcion no existiera: se
+  // ven desde el primer momento, pequenos, y crecen al acercarse.
+  if (z <= 9) return null;
+  if (z === 10) return [12, 10];
+  if (z === 11) return [15, 12];
+  if (z === 12) return [19, 15];
+  if (z === 13) return [26, 20];
+  if (z === 14) return [36, 28];
+  return [48, 36];
 }
 
 function pintaMiniPuntos() {
