@@ -1004,6 +1004,16 @@ svg.chart .now{stroke:var(--now);stroke-width:2}
   font-family:var(--font-ui);min-width:290px}
 .ambito-txt{font-size:.78rem;color:var(--mut-2)}
 
+/* ------------------------------------------ minigraficos en el punto de cobro */
+.minipt{background:color-mix(in srgb,var(--surface) 82%,transparent);
+  border:1px solid var(--line-2);border-radius:4px;padding:2px 2px 1px;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease}
+.minipt:hover{transform:scale(1.35);box-shadow:0 3px 10px rgba(0,0,0,.4);z-index:600}
+.popmini h4{margin:0 0 2px;font-family:var(--font-display);font-size:1rem}
+.popmini table td:first-child{color:var(--mut);font-size:.78rem;padding-right:12px}
+.popmini table td:last-child{text-align:right}
+
 /* -------------------------------------------- marcadores de alerta en mapa */
 /* El evento se ve donde ocurre. El icono dice de que tipo es y el anillo
    pulsante, que sigue activo en este momento. */
@@ -1211,6 +1221,7 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
           <button data-base="calles">Calles</button>
           <button data-base="satelite">Satélite</button>
         </span>
+        <label><input type="checkbox" id="chkMini" checked> Comparativo por punto</label>
         <label><input type="checkbox" id="chkAlertas" checked> Alertas en el mapa</label>
         <label><input type="checkbox" id="chkAVO" checked> AVO I</label>
       </div>
@@ -1451,7 +1462,7 @@ tr.al-media td:first-child{box-shadow:inset 3px 0 0 var(--mp2)}
 </div>
 </div>
 
-<div class="simnota">(simulación · v7)</div>
+<div class="simnota">(simulación · v8)</div>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -1523,7 +1534,7 @@ function horaEfectiva() {
 }
 const St = { t: horaEfectiva(), play: true, vel: 1, ind: 'vel', base: 'claro',
              perfil: 'vol', ambito: 'todo', binPintado: -1, filtroAl: null,
-             verAlertas: true };
+             verAlertas: true, verMini: true };
 
 const binDe = t => Math.min(NB - 1, Math.floor(t / SEGBIN));
 const fracDe = t => (t % SEGBIN) / SEGBIN;
@@ -1868,7 +1879,7 @@ function spark(vals, color, hastaFrac) {
 
 /* ================================================================== MAPA */
 let mapa, capaPort, capaTraza = {}, capaVia, capaBase, basesLyr = {}, capaEtiq,
-    capaCN, capaAlertas;
+    capaCN, capaAlertas, capaMini;
 let segmentos = [];
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 const BASES = {
@@ -1965,7 +1976,11 @@ function iniMapa() {
 
   capaVia = L.layerGroup().addTo(mapa);
   capaPort = L.layerGroup().addTo(mapa);
+  capaMini = L.layerGroup().addTo(mapa);
   capaAlertas = L.layerGroup().addTo(mapa);   // va encima de los porticos
+  gruposPunto = agrupaPorticos();
+  // el tamano depende del zoom: se redibujan al terminar cada zoom
+  mapa.on('zoomend', pintaMiniPuntos);
 
   capaEtiq = L.tileLayer(
     ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
@@ -2083,6 +2098,7 @@ function pintaMapa() {
     });
     capaPort.addLayer(m);
   });
+  pintaMiniPuntos();
   pintaAlertasMapa();
   pintaLeyenda();
 }
@@ -2182,6 +2198,137 @@ function pintaLeyenda() {
       `<div><i style="background:${css('--avs')}"></i>Vespucio Sur</div>` +
       `<div><i style="background:${css('--cn')}"></i>Costanera Norte <span style="opacity:.7">(referencia)</span></div>` +
       `<div><i style="background:${css('--avo')};opacity:.6"></i>AVO I <span style="opacity:.7">(no simulada)</span></div>`;
+}
+
+
+/* ================================================== MINIGRAFICOS POR PUNTO */
+/* En cada punto de cobro, una comparacion de la ULTIMA HORA MOVIL contra la
+   misma hora movil del patron historico, separada por sentido de transito.
+   Los porticos vienen en pares (un sentido cada uno) a metros de distancia, asi
+   que se agrupan por ubicacion y el punto muestra los dos sentidos juntos.
+   Diminutos por defecto: crecen con el zoom y se abren en grande al clic. */
+let gruposPunto = null;
+
+function agrupaPorticos() {
+  const R = 111320, gr = [], hecho = new Array(NP).fill(false);
+  for (let i = 0; i < NP; i++) {
+    if (hecho[i]) continue;
+    const pis = [i];
+    hecho[i] = true;
+    for (let k = i + 1; k < NP; k++) {
+      if (hecho[k]) continue;
+      const d = Math.hypot((P[k].lat - P[i].lat) * R,
+                           (P[k].lon - P[i].lon) * R * Math.cos(P[i].lat * Math.PI / 180));
+      if (d < 450) { pis.push(k); hecho[k] = true; }
+    }
+    gr.push({ pis,
+              lat: pis.reduce((a, x) => a + P[x].lat, 0) / pis.length,
+              lon: pis.reduce((a, x) => a + P[x].lon, 0) / pis.length });
+  }
+  return gr;
+}
+
+/** flujo de la ultima hora movil terminando en el instante t, en vehiculos */
+function horaMovil(M, i, t) {
+  const b = binDe(t), f = fracDe(t);
+  let s = M[i][b] * f;
+  for (let k = 1; k < BINH; k++) s += M[i][(b - k + NB) % NB];
+  s += M[i][(b - BINH + NB) % NB] * (1 - f);
+  return s;
+}
+
+/** datos del minigrafico de un grupo: por sentido, observado y patron */
+function datosPunto(g, t) {
+  const out = [];
+  ['A', 'B'].forEach(sen => {
+    const pis = g.pis.filter(i => P[i].sentido === sen);
+    if (!pis.length) return;
+    let obs = 0, ref = 0;
+    pis.forEach(i => { obs += horaMovil(SPB.n, i, t); ref += horaMovil(NREF, i, t); });
+    out.push({ sen, obs, ref, pis,
+               desv: ref > 20 ? 100 * (obs / ref - 1) : null });
+  });
+  return out;
+}
+
+/** SVG de barras: por sentido, la barra es lo observado y la marca, el patron */
+function svgMini(datos, w, h, conTexto) {
+  const max = Math.max(1, ...datos.map(d => Math.max(d.obs, d.ref))) * 1.12;
+  const mb = conTexto ? 16 : 2, mt = conTexto ? 14 : 2;
+  const ih = h - mb - mt, n = datos.length || 1;
+  const bw = w / n, gap = Math.max(1.5, bw * 0.22);
+  let s = '';
+  datos.forEach((d, k) => {
+    const x0 = bw * k + gap / 2, bwi = bw - gap;
+    const ho = ih * d.obs / max, hr = ih * d.ref / max;
+    const col = d.desv === null ? css('--ink-lo') : colDiv(d.desv, MAX_DVF, 'dvf');
+    // barra = observado; linea horizontal = patron historico
+    s += `<rect x="${x0.toFixed(1)}" y="${(mt + ih - ho).toFixed(1)}"
+            width="${bwi.toFixed(1)}" height="${Math.max(ho, 1).toFixed(1)}"
+            fill="${col}" rx="1"/>`;
+    s += `<line x1="${(x0 - gap * 0.3).toFixed(1)}" x2="${(x0 + bwi + gap * 0.3).toFixed(1)}"
+            y1="${(mt + ih - hr).toFixed(1)}" y2="${(mt + ih - hr).toFixed(1)}"
+            stroke="${css('--ink')}" stroke-width="${conTexto ? 2 : 1.4}"
+            stroke-dasharray="${conTexto ? '5 3' : '2 2'}" opacity=".85"/>`;
+    if (conTexto) {
+      s += `<text x="${(x0 + bwi / 2).toFixed(1)}" y="${h - 4}" text-anchor="middle"
+              font-size="10" fill="${css('--mut')}">${d.sen === 'A' ? 'El Salto→Grecia' : 'Grecia→El Salto'}</text>`;
+      s += `<text x="${(x0 + bwi / 2).toFixed(1)}" y="${(mt + ih - ho - 4).toFixed(1)}"
+              text-anchor="middle" font-size="11" font-weight="700"
+              fill="${css('--ink')}">${nf(d.obs)}</text>`;
+    }
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"
+            style="overflow:visible;display:block">${s}</svg>`;
+}
+
+/** tamano del minigrafico segun el zoom: invisible de lejos, legible de cerca */
+function tamMini(z) {
+  if (z <= 11) return null;          // a esta escala solo estorbaria
+  if (z === 12) return [16, 12];
+  if (z === 13) return [24, 18];
+  if (z === 14) return [34, 26];
+  return [46, 34];
+}
+
+function pintaMiniPuntos() {
+  if (!capaMini) return;
+  capaMini.clearLayers();
+  if (!St.verMini) return;
+  const z = mapa.getZoom(), tam = tamMini(z);
+  if (!tam) return;
+  const [w, h] = tam, t = St.t;
+  const foco = St.ambito === 'todo' ? null : St.ambito;
+
+  (gruposPunto || []).forEach(g => {
+    if (foco !== null && g.pis.indexOf(foco) < 0) return;
+    const datos = datosPunto(g, t);
+    if (!datos.length) return;
+    const icono = L.divIcon({
+      className: '',
+      html: `<div class="minipt">${svgMini(datos, w, h, false)}</div>`,
+      iconSize: [w, h], iconAnchor: [w / 2, h + 12]
+    });
+    const m = L.marker([g.lat, g.lon], { icon: icono, zIndexOffset: 400 });
+    const cods = g.pis.map(i => P[i].codigo).join(' · ');
+    m.bindTooltip(`<b>${cods}</b> · última hora vs. patrón`, { direction: 'top' });
+    m.bindPopup(
+      `<div class="popmini"><h4>${P[g.pis[0]].sector}</h4>
+       <div style="font-size:.74rem;color:var(--mut);margin-bottom:6px">
+         ${cods} · flujo de la última hora móvil contra el patrón histórico</div>
+       ${svgMini(datos, 260, 140, true)}
+       <table style="margin-top:8px">` +
+      datos.map(d => `<tr><td>${d.sen === 'A' ? 'El Salto→Grecia' : 'Grecia→El Salto'}</td>
+        <td><b>${nf(d.obs)}</b> veh/h<div style="font-size:.7rem;color:var(--mut-2)">
+        patrón ${nf(d.ref)} · ${d.desv === null ? '—' :
+          (d.desv > 0 ? '+' : '') + pct(d.desv, 1)}</div></td></tr>`).join('') +
+      `</table>
+       <div style="font-size:.68rem;color:var(--mut-2);margin-top:6px">
+         La barra es lo observado; la línea punteada, el patrón de un día
+         equivalente a esta misma hora.</div></div>`,
+      { maxWidth: 320 });
+    capaMini.addLayer(m);
+  });
 }
 
 /* ================================================================== KPIs */
@@ -2798,6 +2945,10 @@ function init() {
     pintaVivo(); ponChips();
   });
   document.getElementById('selInd').onchange = e => { St.ind = e.target.value; pintaMapa(); };
+  document.getElementById('chkMini').onchange = e => {
+    St.verMini = e.target.checked;
+    pintaMiniPuntos();
+  };
   document.getElementById('chkAlertas').onchange = e => {
     St.verAlertas = e.target.checked;
     pintaAlertasMapa();
